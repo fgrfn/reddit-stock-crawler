@@ -1,26 +1,65 @@
-# dashboard.py
-import streamlit as st
-import pandas as pd
 import os
 import pickle
+import pandas as pd
+import streamlit as st
+from datetime import datetime
+from crawler.upload_to_gsheets import display_gsheets_status
 
 st.set_page_config(page_title="Reddit Stock Crawler Dashboard", layout="wide")
-st.title("📊 Reddit Stock Mentions (r/wallstreetbets)")
+st.title("📊 Reddit Stock Mentions Dashboard (r/wallstreetbets)")
+
+# Load pickle data
+def load_pickle_data():
+    pickle_dir = "data/pickle"
+    files = [f for f in os.listdir(pickle_dir) if f.endswith(".pkl")]
+    if not files:
+        return pd.DataFrame(), []
+
+    data = []
+    for file in files:
+        with open(os.path.join(pickle_dir, file), "rb") as f:
+            data.append(pickle.load(f))
+
+    all_symbols = set()
+    for entry in data:
+        all_symbols.update(entry['results'].keys())
+
+    rows = []
+    for entry in data:
+        row = {symbol: 0 for symbol in all_symbols}
+        row.update(entry['results'])
+        row['run_id'] = entry['run_id']
+        rows.append(row)
+
+    df = pd.DataFrame(rows)
+    df = df.sort_values("run_id").reset_index(drop=True)
+    return df, sorted(all_symbols)
 
 # Load data
-pickle_files = sorted([f for f in os.listdir("pickle") if f.endswith(".pkl")])
-if not pickle_files:
-    st.warning("No crawler results found.")
-else:
-    latest_file = os.path.join("pickle", pickle_files[-1])
-    with open(latest_file, "rb") as f:
-        data = pickle.load(f)
+df, symbols = load_pickle_data()
 
-    st.markdown(f"**Run ID:** `{data['run_id']}` — Total Posts: `{data['total_posts']}`")
-    df = pd.DataFrame(data["results"].items(), columns=["Ticker", "Mentions"])
-    df = df.sort_values(by="Mentions", ascending=False)
+if df.empty:
+    st.warning("🚫 No crawler results found.")
+    st.stop()
 
-    st.bar_chart(df.set_index("Ticker"))
+# Sidebar filters
+with st.sidebar:
+    st.header("🔍 Filter Options")
+    selected_symbols = st.multiselect("Filter by symbol:", options=symbols, default=symbols[:5])
+    min_mentions = st.slider("Minimum Mentions:", min_value=1, max_value=50, value=3)
 
-    st.dataframe(df.reset_index(drop=True))
+# Filter data
+filtered_df = df[['run_id'] + selected_symbols]
+filtered_df = filtered_df.loc[:, (filtered_df != 0).any(axis=0)]
+filtered_df = filtered_df[filtered_df[selected_symbols].ge(min_mentions).any(axis=1)]
 
+# Display chart & table
+st.subheader("📈 Mentions Over Time")
+st.line_chart(filtered_df.set_index("run_id"))
+
+st.subheader("📋 Table View")
+st.dataframe(filtered_df)
+
+# Show Google Sheets status
+with st.expander("📤 Google Sheets Export Status", expanded=True):
+    display_gsheets_status()
