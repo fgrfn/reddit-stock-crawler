@@ -74,6 +74,7 @@ source "\$(dirname "\$0")/venv/bin/activate"
 python3 crawler/Red-Crawler.py
 python3 crawler/Red-Crawl-Table.py
 python3 crawler/cleanup_pickle_files.py
+python3 crawler/upload_to_gsheets.py
 EOF
 
 chmod +x "$INSTALL_DIR/run_reddit_crawler.sh"
