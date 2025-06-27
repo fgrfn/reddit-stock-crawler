@@ -2,6 +2,8 @@ import os
 import pickle
 import pandas as pd
 import gspread
+import json
+from datetime import datetime
 from google.oauth2.service_account import Credentials
 from crawler.config import get_config
 
@@ -11,6 +13,7 @@ def upload_latest_results_to_gsheets():
     keyfile = config.get("google_sheets_keyfile")
     spreadsheet_name = config.get("google_sheets_spreadsheet")
     pickle_dir = "data/pickle"
+    log_path = "data/logs/gsheets_last.json"
 
     if not keyfile or not spreadsheet_name:
         print("⚠️ Google Sheets integration not configured.")
@@ -42,6 +45,19 @@ def upload_latest_results_to_gsheets():
         sheet.append_row(row)
 
     print(f"✅ Uploaded {len(df)} rows to Google Sheets: {spreadsheet_name}")
+
+    # Write export info to log
+    export_log = {
+        "status": "success",
+        "spreadsheet": spreadsheet_name,
+        "timestamp": datetime.now().isoformat(timespec='seconds'),
+        "run_id": data["run_id"],
+        "rows": len(df),
+        "top": df.head(5).to_dict(orient="records")
+    }
+    os.makedirs(os.path.dirname(log_path), exist_ok=True)
+    with open(log_path, "w") as log_file:
+        json.dump(export_log, log_file, indent=2)
 
 
 if __name__ == "__main__":
