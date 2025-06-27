@@ -1,18 +1,18 @@
 import pandas as pd
 import pickle
 
-# Pfade
-EXCEL_PATH = "NAS-NYSE-bereinigt.xlsx"
+# Paths
+EXCEL_PATH = "NAS-NYSE-cleaned.xlsx"
 OUTPUT_PKL = "symbols_list.pkl"
 
-# Excel laden
+# Load Excel file
 df = pd.read_excel(EXCEL_PATH)
 
-# Erste Spalte: Aktiensymbole extrahieren
+# Extract the first column: stock ticker symbols
 symbols = df.iloc[:, 0].dropna().unique().tolist()
 
-# Pickle-Datei speichern
+# Save as Pickle file
 with open(OUTPUT_PKL, "wb") as f:
     pickle.dump(symbols, f)
 
-print(f"✅ {len(symbols)} Tickersymbole in {OUTPUT_PKL} gespeichert.")
+print(f"✅ {len(symbols)} ticker symbols saved to {OUTPUT_PKL}.")
