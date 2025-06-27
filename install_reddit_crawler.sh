@@ -3,8 +3,8 @@
 echo "🔧 Reddit Stock Crawler Installer"
 echo "----------------------------------"
 
-# 📆 Install required system dependencies
-echo "📆 Installing required system dependencies..."
+# 📦 Install required system dependencies
+echo "📦 Installing required system dependencies..."
 sudo apt update
 sudo apt install -y python3 python3-venv python3-pip wget git
 
@@ -18,8 +18,10 @@ fi
 INSTALL_DIR="$(pwd)"
 echo "📁 Installing to: $INSTALL_DIR"
 
-mkdir -p "$INSTALL_DIR"/data/pickle
-mkdir -p "$INSTALL_DIR"/data/logs
+mkdir -p "$INSTALL_DIR/data/pickle"
+mkdir -p "$INSTALL_DIR/data/logs"
+mkdir -p "$INSTALL_DIR/dashboard"
+mkdir -p "$INSTALL_DIR/crawler"
 
 # 🔐 Create virtual environment
 if [ ! -d "$INSTALL_DIR/venv" ]; then
@@ -33,14 +35,24 @@ source "$INSTALL_DIR/venv/bin/activate"
 # 🛠️ Install Python dependencies inside venv
 echo "📦 Installing Python dependencies in virtual environment..."
 pip install --upgrade pip
-pip install pandas openpyxl praw python-dotenv streamlit plotly gspread google-auth google-auth-oauthlib seaborn openai requests seaborn matplotlib
+pip install pandas openpyxl praw python-dotenv streamlit plotly gspread google-auth google-auth-oauthlib seaborn openai
 
-# 🔑 Ask for Reddit API credentials
+# 🔑 Ask for Reddit & API credentials
 echo ""
-echo "🔐 Please enter your Reddit API credentials:"
-read -p "Client ID: " CLIENT_ID
-read -p "Client Secret: " CLIENT_SECRET
-read -p "User Agent (e.g., python:reddit-bot:v1.0 (by /u/yourname)): " USER_AGENT
+echo "🔐 Please enter your API credentials:"
+
+read -p "Reddit Client ID: " CLIENT_ID
+read -p "Reddit Client Secret: " CLIENT_SECRET
+read -p "Reddit User Agent (e.g., reddit-bot:v1.0 by /u/yourname): " USER_AGENT
+
+read -p "OpenAI API Key (optional): " OPENAI_API_KEY
+read -p "Gemini API Key (optional): " GEMINI_API_KEY
+
+read -p "Discord Webhook URL (optional): " WEBHOOK_URL
+read -p "Google Sheets JSON key file path (optional): " GDRIVE_KEY
+read -p "Google Sheet spreadsheet name (optional): " GDRIVE_SHEET
+read -p "Auto-cleanup days for pickle files (default 7): " CLEANUP_DAYS
+CLEANUP_DAYS=${CLEANUP_DAYS:-7}
 
 # 📄 Create .env file
 cat > "$INSTALL_DIR/secret.env" <<EOF
@@ -48,20 +60,18 @@ REDDIT_CLIENT_ID=$CLIENT_ID
 REDDIT_CLIENT_SECRET=$CLIENT_SECRET
 REDDIT_USER_AGENT=$USER_AGENT
 
-# Optional integrations:
-WEBHOOK_URL=
-GOOGLE_SHEETS_KEYFILE=
-GOOGLE_SHEETS_SPREADSHEET=
-CLEANUP_DAYS=7
+OPENAI_API_KEY=$OPENAI_API_KEY
+GEMINI_API_KEY=$GEMINI_API_KEY
 
-# AI providers:
-OPENAI_API_KEY=
-GEMINI_API_KEY=
+WEBHOOK_URL=$WEBHOOK_URL
+GOOGLE_SHEETS_KEYFILE=$GDRIVE_KEY
+GOOGLE_SHEETS_SPREADSHEET=$GDRIVE_SHEET
+CLEANUP_DAYS=$CLEANUP_DAYS
 EOF
 
 echo "✅ .env file created."
 
-# 🗕️ Download stock symbol list
+# 📥 Download stock symbol list
 echo "🗕️ Downloading NASDAQ & NYSE symbol list..."
 wget -O data/NAS-NYSE-cleaned.xlsx https://www.heise.de/downloads/18/4/8/7/4/3/8/6/NAS-NYSE-bereinigt.xlsx
 
@@ -92,23 +102,12 @@ echo "   5) Skip (no cronjob)"
 read -p "➡ Choose an option [1-5]: " INTERVAL
 
 case $INTERVAL in
-  1)
-    CRON_EXPR="0 * * * *"
-    ;;
-  2)
-    CRON_EXPR="0 */6 * * *"
-    ;;
-  3)
-    CRON_EXPR="0 8 * * *"
-    ;;
-  4)
-    read -p "🛠️  Enter your custom cron expression (e.g., */30 * * * *): " CUSTOM_EXPR
-    CRON_EXPR="$CUSTOM_EXPR"
-    ;;
-  *)
-    echo "⏩ Skipping cronjob setup."
-    CRON_EXPR=""
-    ;;
+  1) CRON_EXPR="0 * * * *" ;;
+  2) CRON_EXPR="0 */6 * * *" ;;
+  3) CRON_EXPR="0 8 * * *" ;;
+  4) read -p "🛠️ Enter your custom cron expression (e.g., */30 * * * *): " CUSTOM_EXPR
+     CRON_EXPR="$CUSTOM_EXPR" ;;
+  *) echo "⏩ Skipping cronjob setup."; CRON_EXPR="" ;;
 esac
 
 if [ -n "$CRON_EXPR" ]; then
