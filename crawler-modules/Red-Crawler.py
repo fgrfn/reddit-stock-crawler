@@ -5,7 +5,7 @@ from collections import Counter
 import re
 import os
 from dotenv import load_dotenv
-from crawler.config import get_config
+from crawler_modules.config import get_config
 from webhook_notifier import send_top_stocks_webhook
 
 def reddit_crawler():
