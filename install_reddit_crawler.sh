@@ -9,41 +9,40 @@ mkdir -p "$INSTALL_DIR"/{pickle,logs}
 cd "$INSTALL_DIR" || exit 1
 
 # 2. Check for Python
+if ! command -v python3 &> /dev/null; then
+  echo "❌ Python3 not found. Please install Python3."
+  exit 1
+fi
 
-# Check for python3-venv
+# 3. Check for python3-venv
 if ! python3 -m ensurepip --version &> /dev/null; then
   echo "❌ The 'python3-venv' package is missing. Please install it first."
   echo "   On Debian/Ubuntu, run: sudo apt install python3-venv"
   exit 1
 fi
 
-if ! command -v python3 &> /dev/null; then
-  echo "❌ Python3 not found. Please install Python3."
-  exit 1
-fi
-
-# 3. Create virtual environment
+# 4. Create virtual environment
 if [ ! -d "$INSTALL_DIR/venv" ]; then
   echo "📦 Creating virtual environment..."
   python3 -m venv "$INSTALL_DIR/venv"
 fi
 
-# 4. Activate venv
+# 5. Activate venv
 source "$INSTALL_DIR/venv/bin/activate"
 
-# 5. Install dependencies
+# 6. Install dependencies
 echo "📦 Installing Python dependencies..."
 pip install --upgrade pip
 pip install pandas openpyxl praw python-dotenv
 
-# 6. Ask for Reddit API credentials
+# 7. Ask for Reddit API credentials
 echo ""
 echo "🔐 Please enter your Reddit API credentials:"
 read -p "Client ID: " CLIENT_ID
 read -p "Client Secret: " CLIENT_SECRET
 read -p "User Agent (e.g., python:reddit-bot:v1.0 (by /u/yourname)): " USER_AGENT
 
-# 7. Create .env file
+# 8. Create .env file
 cat > "$INSTALL_DIR/secret.env" <<EOF
 REDDIT_CLIENT_ID=$CLIENT_ID
 REDDIT_CLIENT_SECRET=$CLIENT_SECRET
@@ -52,9 +51,7 @@ EOF
 
 echo "✅ .env file created."
 
-
-
-# 8. Create launch script
+# 9. Create launch script
 cat > "$INSTALL_DIR/run_reddit_crawler.sh" <<EOF
 #!/bin/bash
 source "\$(dirname "\$0")/venv/bin/activate"
@@ -64,7 +61,7 @@ EOF
 
 chmod +x "$INSTALL_DIR/run_reddit_crawler.sh"
 
-# 9. Done
+# 10. Done
 echo ""
 echo "✅ Installation complete!"
 echo "➡ To run the crawler:"
