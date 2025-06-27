@@ -33,7 +33,7 @@ source "$INSTALL_DIR/venv/bin/activate"
 # 🧰 Install Python dependencies inside venv
 echo "📦 Installing Python dependencies in virtual environment..."
 pip install --upgrade pip
-pip install pandas openpyxl praw python-dotenv
+pip install pandas openpyxl praw python-dotenv streamlit plotly
 
 # 🔑 Ask for Reddit API credentials
 echo ""
@@ -74,3 +74,7 @@ echo ""
 echo "✅ Installation complete!"
 echo "➡ To run the crawler:"
 echo "   ./run_reddit_crawler.sh"
+echo ""
+echo "📊 Dashboard is ready!"
+echo "➡ To launch it, run:"
+echo "   streamlit run dashboard/dashboard.py"
