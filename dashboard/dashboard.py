@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from datetime import datetime
 from crawler.upload_to_gsheets import display_gsheets_status
 
-st.set_page_config(page_title="Reddit Stock Crawler Dashboard", layout="wide")
+st.set_page_config(page_title="Reddit Stock Mentions Dashboard", layout="wide")
 st.title("📊 Reddit Stock Mentions Dashboard (r/wallstreetbets)")
 
 # Load pickle data
@@ -76,6 +76,29 @@ plt.ylabel("Symbol")
 plt.title("Mentions per Symbol over Time")
 st.pyplot(fig)
 
+# Trend Analysis (local, not AI-based)
+st.subheader("📈 Mention Trends (Last 3 Runs)")
+trend_df = df[['run_id'] + top_symbols].copy()
+trend_result = []
+for symbol in top_symbols:
+    values = trend_df[symbol].values[-3:]
+    if len(values) < 3:
+        trend = "🟡 Not enough data"
+    elif values[-1] > values[-2] > values[-3]:
+        trend = "🟢 Increasing"
+    elif values[-1] < values[-2] < values[-3]:
+        trend = "🔴 Decreasing"
+    else:
+        trend = "🟡 Stable"
+    trend_result.append((symbol, values.tolist(), trend))
+
+trend_table = pd.DataFrame(trend_result, columns=["Symbol", "Last 3", "Trend"])
+st.dataframe(trend_table)
+
 # Show Google Sheets status
 with st.expander("📤 Google Sheets Export Status", expanded=True):
     display_gsheets_status()
+
+# Placeholder for real AI Recommendation (via OpenAI, etc.)
+st.subheader("🤖 AI Recommendation (coming soon)")
+st.info("This section will use GPT-based analysis to summarize trending stocks and make recommendations.")
