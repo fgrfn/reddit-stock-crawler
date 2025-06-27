@@ -20,8 +20,6 @@ cd "$INSTALL_DIR" || exit 1
     echo "❌ Failed to install python3-venv. Please install it manually."
     exit 1
   fi
-  echo "   On Debian/Ubuntu, run: sudo apt install python3-venv"
-  exit 1
 fi
 
 if ! command -v python3 &> /dev/null; then
