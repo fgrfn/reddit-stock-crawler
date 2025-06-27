@@ -7,19 +7,17 @@ echo "----------------------------------"
 echo "📦 Installing required system dependencies..."
 sudo apt update
 sudo apt install -y python3 python3-venv python3-pip wget git
-pip install --upgrade pip
-pip install pandas openpyxl praw python-dotenv
-
-# 📁 Ask for installation directory
-read -p "📁 Where should the Reddit Crawler be installed? (e.g., /home/reddit-bot): " INSTALL_DIR
-mkdir -p "$INSTALL_DIR"/{pickle,logs}
-cd "$INSTALL_DIR" || exit 1
 
 # 🔍 Check for Python
 if ! command -v python3 &> /dev/null; then
   echo "❌ Python3 not found. Please install Python3."
   exit 1
 fi
+
+# 📁 Ask for installation directory
+read -p "📁 Where should the Reddit Crawler be installed? (e.g., /home/reddit-bot): " INSTALL_DIR
+mkdir -p "$INSTALL_DIR"/{pickle,logs}
+cd "$INSTALL_DIR" || exit 1
 
 # 🔐 Create virtual environment
 if [ ! -d "$INSTALL_DIR/venv" ]; then
@@ -29,6 +27,11 @@ fi
 
 # 🧠 Activate virtual environment
 source "$INSTALL_DIR/venv/bin/activate"
+
+# 🧰 Install Python dependencies inside venv
+echo "📦 Installing Python dependencies in virtual environment..."
+pip install --upgrade pip
+pip install pandas openpyxl praw python-dotenv
 
 # 🔑 Ask for Reddit API credentials
 echo ""
