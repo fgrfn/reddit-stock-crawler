@@ -34,7 +34,7 @@ def create_dataframe(data_list):
 
 def update_excel_template(df):
     if not os.path.exists(TEMPLATE_PATH):
-        print(f"❌ Excel-Vorlage nicht gefunden: {TEMPLATE_PATH}")
+        print(f"❌ Excel template not found: {TEMPLATE_PATH}")
         return
     shutil.copy2(TEMPLATE_PATH, OUTPUT_PATH)
     wb = load_workbook(OUTPUT_PATH)
@@ -46,15 +46,15 @@ def update_excel_template(df):
         for col_idx, val in enumerate(row, 1):
             ws.cell(row=row_idx, column=col_idx, value=val)
     wb.save(OUTPUT_PATH)
-    print(f"✅ Excel-Datei aktualisiert: {OUTPUT_PATH}")
+    print(f"✅ Excel file updated: {OUTPUT_PATH}")
 
 def main():
-    print("📊 Lade Pickle-Dateien...")
+    print("📊 Loading Pickle files...")
     data = read_pickle_files()
     if not data:
-        print("🚫 Keine Pickle-Dateien gefunden.")
+        print("🚫 No Pickle files found.")
         return
-    print(f"🔢 {len(data)} Datensätze geladen")
+    print(f"🔢 {len(data)} datasets loaded")
     df = create_dataframe(data)
     update_excel_template(df)
 
