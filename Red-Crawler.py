@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 
 def reddit_crawler():
     run_id = datetime.now().strftime("%y%m%d-%H%M")
-    print(f"Crawler-Run ID: {run_id}")
+    print(f"Crawler run ID: {run_id}")
 
     load_dotenv(dotenv_path='secret.env')
     reddit = praw.Reddit(
@@ -21,7 +21,11 @@ def reddit_crawler():
     with open('symbols_list.pkl', 'rb') as f:
         all_symbols = pickle.load(f)
 
-    blacklist = {'BE', 'GO', 'IT', 'OR', 'SO', 'NO', 'UP', 'FOR', 'ON', 'BY', 'AS', 'HE', 'AM', 'AN', 'AI', 'DD', 'OP', 'ALL', 'YOU', 'TV', 'PM', 'HAS', 'ARM', 'ARE', 'PUMP', 'EOD', 'DAY', 'WTF', 'HIT', 'NOW'}
+    blacklist = {
+        'BE', 'GO', 'IT', 'OR', 'SO', 'NO', 'UP', 'FOR', 'ON', 'BY', 'AS',
+        'HE', 'AM', 'AN', 'AI', 'DD', 'OP', 'ALL', 'YOU', 'TV', 'PM', 'HAS',
+        'ARM', 'ARE', 'PUMP', 'EOD', 'DAY', 'WTF', 'HIT', 'NOW'
+    }
     symbols = [s for s in all_symbols if s not in blacklist]
 
     symbol_counts = Counter()
@@ -42,17 +46,17 @@ def reddit_crawler():
             matches = len(re.findall(pattern, search_text))
             if matches > 0:
                 symbol_counts[symbol] += matches
-                print(f"→ {symbol}: {matches} Treffer")
+                print(f"→ {symbol}: {matches} matches")
 
     filtered = {s: c for s, c in symbol_counts.items() if c > 5}
     if filtered:
         data = {'run_id': run_id, 'results': filtered, 'total_posts': post_count}
         os.makedirs('pickle', exist_ok=True)
-        with open(f'pickle/{run_id}_crawler-ergebnis.pkl', 'wb') as f:
+        with open(f'pickle/{run_id}_crawler_result.pkl', 'wb') as f:
             pickle.dump(data, f)
-        print(f"\n✅ Ergebnisse gespeichert in: {run_id}_crawler-ergebnis.pkl")
+        print(f"\n✅ Results saved to: {run_id}_crawler_result.pkl")
     else:
-        print("\n🚫 Keine Treffer über der Schwelle gefunden.")
+        print("\n🚫 No matches found above the threshold.")
 
 if __name__ == "__main__":
     reddit_crawler()
