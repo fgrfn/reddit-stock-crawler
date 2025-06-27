@@ -33,7 +33,7 @@ source "$INSTALL_DIR/venv/bin/activate"
 # 🧰 Install Python dependencies inside venv
 echo "📦 Installing Python dependencies in virtual environment..."
 pip install --upgrade pip
-pip install pandas openpyxl praw python-dotenv streamlit plotly
+pip install pandas openpyxl praw python-dotenv
 
 # 🔑 Ask for Reddit API credentials
 echo ""
@@ -69,12 +69,16 @@ EOF
 
 chmod +x "$INSTALL_DIR/run_reddit_crawler.sh"
 
+# ⏰ Ask if user wants to schedule automatic crawling
+read -p "❓ Do you want to run the crawler automatically every 6 hours via cron? (y/n): " CRON_ANSWER
+if [[ "$CRON_ANSWER" =~ ^[Yy]$ ]]; then
+  CRON_CMD="0 */6 * * * $INSTALL_DIR/run_reddit_crawler.sh >> $INSTALL_DIR/data/logs/cron.log 2>&1"
+  (crontab -l 2>/dev/null; echo "$CRON_CMD") | crontab -
+  echo "✅ Cronjob added: Crawler will run every 6 hours."
+fi
+
 # ✅ Done
 echo ""
 echo "✅ Installation complete!"
 echo "➡ To run the crawler:"
 echo "   ./run_reddit_crawler.sh"
-echo ""
-echo "📊 Dashboard is ready!"
-echo "➡ To launch it, run:"
-echo "   streamlit run dashboard/dashboard.py"
