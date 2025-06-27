@@ -5,8 +5,8 @@ from openpyxl import load_workbook
 import shutil
 
 PICKLE_DIR = 'pickle'
-TEMPLATE_PATH = 'crawler_results-vorlage.xlsx'
-OUTPUT_PATH = 'crawler_results_aktuell.xlsx'
+TEMPLATE_PATH = 'crawler_results_template.xlsx'
+OUTPUT_PATH = 'crawler_results_current.xlsx'
 
 def read_pickle_files():
     data = []
