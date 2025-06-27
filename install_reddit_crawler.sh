@@ -1,61 +1,52 @@
 #!/bin/bash
 
-echo "🔧 Reddit Crawler Installer – für r/wallstreetbets"
-echo "--------------------------------------------------"
+echo "🔧 Reddit Stock Crawler Installer"
+echo "----------------------------------"
 
-# 1. Projektverzeichnis abfragen
-read -p "📁 Wohin soll der Reddit-Crawler installiert werden? (z. B. /home/reddit-bot): " INSTALL_DIR
+# 1. Ask for installation directory
+read -p "📁 Where should the Reddit Crawler be installed? (e.g., /home/reddit-bot): " INSTALL_DIR
 mkdir -p "$INSTALL_DIR"/{pickle,logs}
 cd "$INSTALL_DIR" || exit 1
 
-# 2. Python & pip prüfen
+# 2. Check for Python
 if ! command -v python3 &> /dev/null; then
-  echo "❌ Python3 nicht gefunden. Bitte installiere Python."
+  echo "❌ Python3 not found. Please install Python3."
   exit 1
 fi
 
-# 3. Virtuelle Umgebung erstellen
+# 3. Create virtual environment
 if [ ! -d "$INSTALL_DIR/venv" ]; then
-  echo "📦 Erstelle virtuelle Umgebung..."
+  echo "📦 Creating virtual environment..."
   python3 -m venv "$INSTALL_DIR/venv"
 fi
 
-# 4. Aktivieren der venv
+# 4. Activate venv
 source "$INSTALL_DIR/venv/bin/activate"
 
-# 5. Pakete installieren
-echo "📦 Installiere Python-Abhängigkeiten..."
+# 5. Install dependencies
+echo "📦 Installing Python dependencies..."
 pip install --upgrade pip
 pip install pandas openpyxl praw python-dotenv
 
-# 6. Reddit-API-Zugangsdaten abfragen
+# 6. Ask for Reddit API credentials
 echo ""
-echo "🔐 Bitte gib deine Reddit API-Zugangsdaten ein:"
+echo "🔐 Please enter your Reddit API credentials:"
 read -p "Client ID: " CLIENT_ID
 read -p "Client Secret: " CLIENT_SECRET
-read -p "User Agent (z. B. python:mein-bot:v1.0 (by /u/deinname)): " USER_AGENT
+read -p "User Agent (e.g., python:reddit-bot:v1.0 (by /u/yourname)): " USER_AGENT
 
-# 7. .env Datei schreiben
+# 7. Create .env file
 cat > "$INSTALL_DIR/secret.env" <<EOF
 REDDIT_CLIENT_ID=$CLIENT_ID
 REDDIT_CLIENT_SECRET=$CLIENT_SECRET
 REDDIT_USER_AGENT=$USER_AGENT
 EOF
 
-echo "✅ .env-Datei wurde erstellt."
+echo "✅ .env file created."
 
-# 8. Platzhalter-Skripte erstellen (nur zur Orientierung)
-cat > "$INSTALL_DIR/Red-Crawler.py" <<EOF
-# TODO: Red-Crawler.py mit echtem Crawler-Skript befüllen
-print("Platzhalter: Red-Crawler.py")
-EOF
 
-cat > "$INSTALL_DIR/Red-Crawl-Table.py" <<EOF
-# TODO: Red-Crawl-Table.py mit Excel-Auswertungsskript befüllen
-print("Platzhalter: Red-Crawl-Table.py")
-EOF
 
-# 9. Startskript erstellen mit venv-Aktivierung
+# 8. Create launch script
 cat > "$INSTALL_DIR/run_reddit_crawler.sh" <<EOF
 #!/bin/bash
 source "\$(dirname "\$0")/venv/bin/activate"
@@ -65,13 +56,9 @@ EOF
 
 chmod +x "$INSTALL_DIR/run_reddit_crawler.sh"
 
-# 10. Abschluss
+# 9. Done
 echo ""
-echo "✅ Setup abgeschlossen!"
-echo "👉 Wechsle in dein Projektverzeichnis:"
+echo "✅ Installation complete!"
+echo "➡ To run the crawler:"
 echo "   cd $INSTALL_DIR"
-echo ""
-echo "➡ Starte den Crawler mit:"
 echo "   ./run_reddit_crawler.sh"
-echo ""
-echo "📌 Denke daran, die echten Skripte (Red-Crawler.py etc.) einzufügen."
