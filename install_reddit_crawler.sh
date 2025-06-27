@@ -18,7 +18,8 @@ fi
 INSTALL_DIR="$(pwd)"
 echo "📁 Installing to: $INSTALL_DIR"
 
-mkdir -p "$INSTALL_DIR"/{pickle,logs}
+mkdir -p "$INSTALL_DIR"/data/pickle
+mkdir -p "$INSTALL_DIR"/data/logs
 
 # 🔐 Create virtual environment
 if [ ! -d "$INSTALL_DIR/venv" ]; then
@@ -52,16 +53,16 @@ echo "✅ .env file created."
 
 # 📥 Download stock symbol list
 echo "📥 Downloading NASDAQ & NYSE symbol list..."
-wget -O NAS-NYSE-cleaned.xlsx https://www.heise.de/downloads/18/4/8/7/4/3/8/6/NAS-NYSE-bereinigt.xlsx
+wget -O data/NAS-NYSE-cleaned.xlsx https://www.heise.de/downloads/18/4/8/7/4/3/8/6/NAS-NYSE-bereinigt.xlsx
 
 # 🧪 Generate symbols_list.pkl from Excel
 echo "🔧 Generating ticker symbol list..."
-python3 ticker_pickle_generator.py
+python3 crawler/ticker_pickle_generator.py
 
 # 🚀 Create launch script
 cat > "$INSTALL_DIR/run_reddit_crawler.sh" <<EOF
 #!/bin/bash
-source "$(dirname "$0")/venv/bin/activate"
+source "\$(dirname "\$0")/venv/bin/activate"
 python3 crawler/Red-Crawler.py
 python3 crawler/Red-Crawl-Table.py
 EOF
