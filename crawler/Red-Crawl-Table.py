@@ -4,9 +4,9 @@ import pandas as pd
 from openpyxl import load_workbook
 import shutil
 
-PICKLE_DIR = 'pickle'
-TEMPLATE_PATH = 'crawler_results_template.xlsx'
-OUTPUT_PATH = 'crawler_results_current.xlsx'
+PICKLE_DIR = 'data/pickle'
+TEMPLATE_PATH = 'data/crawler_results_template.xlsx'
+OUTPUT_PATH = 'data/crawler_results_current.xlsx'
 
 def read_pickle_files():
     data = []
@@ -54,7 +54,7 @@ def main():
     if not data:
         print("🚫 No Pickle files found.")
         return
-    print(f"🔢 {len(data)} datasets loaded")
+    print(f"🔢 {len(data)} records loaded")
     df = create_dataframe(data)
     update_excel_template(df)
 
