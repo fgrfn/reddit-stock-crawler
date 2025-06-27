@@ -18,13 +18,13 @@ def reddit_crawler():
     )
 
     pattern_template = r'(?<!\w)(\${symbol}|{symbol})(?!\w)'
-    with open('symbols_list.pkl', 'rb') as f:
+    with open('data/symbols_list.pkl', 'rb') as f:
         all_symbols = pickle.load(f)
 
     blacklist = {
-        'BE', 'GO', 'IT', 'OR', 'SO', 'NO', 'UP', 'FOR', 'ON', 'BY', 'AS',
-        'HE', 'AM', 'AN', 'AI', 'DD', 'OP', 'ALL', 'YOU', 'TV', 'PM', 'HAS',
-        'ARM', 'ARE', 'PUMP', 'EOD', 'DAY', 'WTF', 'HIT', 'NOW'
+        'BE', 'GO', 'IT', 'OR', 'SO', 'NO', 'UP', 'FOR', 'ON', 'BY', 'AS', 'HE', 'AM',
+        'AN', 'AI', 'DD', 'OP', 'ALL', 'YOU', 'TV', 'PM', 'HAS', 'ARM', 'ARE', 'PUMP',
+        'EOD', 'DAY', 'WTF', 'HIT', 'NOW'
     }
     symbols = [s for s in all_symbols if s not in blacklist]
 
@@ -51,12 +51,12 @@ def reddit_crawler():
     filtered = {s: c for s, c in symbol_counts.items() if c > 5}
     if filtered:
         data = {'run_id': run_id, 'results': filtered, 'total_posts': post_count}
-        os.makedirs('pickle', exist_ok=True)
-        with open(f'pickle/{run_id}_crawler_result.pkl', 'wb') as f:
+        os.makedirs('data/pickle', exist_ok=True)
+        with open(f'data/pickle/{run_id}_crawler-results.pkl', 'wb') as f:
             pickle.dump(data, f)
-        print(f"\n✅ Results saved to: {run_id}_crawler_result.pkl")
+        print(f"\n✅ Results saved to: {run_id}_crawler-results.pkl")
     else:
-        print("\n🚫 No matches found above the threshold.")
+        print("\n🚫 No symbols passed the threshold.")
 
 if __name__ == "__main__":
     reddit_crawler()
