@@ -105,11 +105,20 @@ if [ -n "$CRON_EXPR" ]; then
   echo "✅ Cronjob added: Crawler will run as scheduled."
 fi
 
+# 📊 Ask to auto-start dashboard on boot
+echo ""
+read -p "❓ Do you want to automatically launch the dashboard on boot? (y/n): " DASHBOARD_START
+if [[ "$DASHBOARD_START" =~ ^[Yy]$ ]]; then
+  DASHBOARD_CMD="@reboot $INSTALL_DIR/venv/bin/streamlit run $INSTALL_DIR/dashboard/dashboard.py >> $INSTALL_DIR/data/logs/dashboard.log 2>&1"
+  (crontab -l 2>/dev/null; echo "$DASHBOARD_CMD") | crontab -
+  echo "✅ Dashboard autostart added (via cron @reboot)."
+fi
+
 # ✅ Done
 echo ""
 echo "✅ Installation complete!"
 echo "➡ To run the crawler manually:"
 echo "   ./run_reddit_crawler.sh"
 echo ""
-echo "📊 To launch the dashboard:"
+echo "📊 To launch the dashboard manually:"
 echo "   streamlit run dashboard/dashboard.py"
