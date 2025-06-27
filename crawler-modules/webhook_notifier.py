@@ -1,5 +1,5 @@
 import requests
-from crawler.config import get_config
+from crawler_modules.config import get_config
 
 def send_top_stocks_webhook(results_dict: dict, run_id: str):
     config = get_config()
