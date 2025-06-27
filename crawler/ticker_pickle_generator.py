@@ -2,8 +2,8 @@ import pandas as pd
 import pickle
 
 # Paths
-EXCEL_PATH = "NAS-NYSE-cleaned.xlsx"
-OUTPUT_PKL = "symbols_list.pkl"
+EXCEL_PATH = "data/NAS-NYSE-cleaned.xlsx"
+OUTPUT_PKL = "data/symbols_list.pkl"
 
 # Load Excel file
 df = pd.read_excel(EXCEL_PATH)
