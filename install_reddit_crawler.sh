@@ -49,6 +49,14 @@ REDDIT_CLIENT_SECRET=$CLIENT_SECRET
 REDDIT_USER_AGENT=$USER_AGENT
 EOF
 
+# ➕ Optional: Add integration configuration
+echo "" >> "$INSTALL_DIR/secret.env"
+echo "# Optional integrations:" >> "$INSTALL_DIR/secret.env"
+echo "WEBHOOK_URL=" >> "$INSTALL_DIR/secret.env"
+echo "GOOGLE_SHEETS_KEYFILE=" >> "$INSTALL_DIR/secret.env"
+echo "GOOGLE_SHEETS_SPREADSHEET=" >> "$INSTALL_DIR/secret.env"
+echo "CLEANUP_DAYS=7" >> "$INSTALL_DIR/secret.env"
+
 echo "✅ .env file created."
 
 # 📥 Download stock symbol list
