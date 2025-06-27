@@ -50,6 +50,14 @@ EOF
 
 echo "✅ .env file created."
 
+# 📥 Download stock symbol list
+echo "📥 Downloading NASDAQ & NYSE symbol list..."
+wget -O NAS-NYSE-cleaned.xlsx https://www.heise.de/downloads/18/4/8/7/4/3/8/6/NAS-NYSE-bereinigt.xlsx
+
+# 🧪 Generate symbols_list.pkl from Excel
+echo "🔧 Generating ticker symbol list..."
+python3 ticker_pickle_generator.py
+
 # 🚀 Create launch script
 cat > "$INSTALL_DIR/run_reddit_crawler.sh" <<EOF
 #!/bin/bash
