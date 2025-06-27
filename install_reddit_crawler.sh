@@ -73,6 +73,7 @@ cat > "$INSTALL_DIR/run_reddit_crawler.sh" <<EOF
 source "\$(dirname "\$0")/venv/bin/activate"
 python3 crawler/Red-Crawler.py
 python3 crawler/Red-Crawl-Table.py
+python3 crawler/cleanup_pickle_files.py
 EOF
 
 chmod +x "$INSTALL_DIR/run_reddit_crawler.sh"
