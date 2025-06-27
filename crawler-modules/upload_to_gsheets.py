@@ -5,7 +5,7 @@ import gspread
 import json
 from datetime import datetime
 from google.oauth2.service_account import Credentials
-from crawler.config import get_config
+from crawler_modules.config import get_config
 
 
 def upload_latest_results_to_gsheets():
