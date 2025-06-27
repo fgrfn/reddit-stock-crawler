@@ -6,9 +6,15 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from datetime import datetime
 from crawler.upload_to_gsheets import display_gsheets_status
+from dotenv import load_dotenv
+import requests
+import json
 
 st.set_page_config(page_title="Reddit Stock Mentions Dashboard", layout="wide")
 st.title("📊 Reddit Stock Mentions Dashboard (r/wallstreetbets)")
+
+# Load env
+load_dotenv()
 
 # Load pickle data
 def load_pickle_data():
@@ -99,6 +105,41 @@ st.dataframe(trend_table)
 with st.expander("📤 Google Sheets Export Status", expanded=True):
     display_gsheets_status()
 
-# Placeholder for real AI Recommendation (via OpenAI, etc.)
-st.subheader("🤖 AI Recommendation (coming soon)")
-st.info("This section will use GPT-based analysis to summarize trending stocks and make recommendations.")
+# AI Recommendation with provider selection
+st.subheader("🤖 AI Recommendation")
+ai_provider = st.selectbox("Choose AI Provider", ["OpenAI", "Gemini (Google)"])
+
+prompt = "Given the following stock trends:\n" + "\n".join(
+    [f"{row['Symbol']}: {row['Trend']} ({row['Last 3']})" for _, row in trend_table.iterrows()]
+) + "\n\nWhich tickers show strong momentum and should be watched closely?"
+
+if ai_provider == "OpenAI":
+    import openai
+    openai.api_key = os.getenv("OPENAI_API_KEY")
+    if openai.api_key:
+        try:
+            response = openai.ChatCompletion.create(
+                model="gpt-4",
+                messages=[{"role": "user", "content": prompt}]
+            )
+            ai_output = response.choices[0].message.content
+            st.markdown(f"**OpenAI GPT Response:**\n\n{ai_output}")
+        except Exception as e:
+            st.error(f"OpenAI API error: {e}")
+    else:
+        st.warning("OPENAI_API_KEY not found in .env")
+
+elif ai_provider == "Gemini (Google)":
+    api_key = os.getenv("GEMINI_API_KEY")
+    if api_key:
+        try:
+            gemini_url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent"
+            headers = {"Content-Type": "application/json"}
+            payload = {"contents": [{"parts": [{"text": prompt}]}]}
+            response = requests.post(f"{gemini_url}?key={api_key}", headers=headers, data=json.dumps(payload))
+            ai_output = response.json().get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "No response")
+            st.markdown(f"**Gemini Response:**\n\n{ai_output}")
+        except Exception as e:
+            st.error(f"Gemini API error: {e}")
+    else:
+        st.warning("GEMINI_API_KEY not found in .env")
