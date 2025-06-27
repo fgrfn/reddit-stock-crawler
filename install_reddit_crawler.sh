@@ -33,7 +33,7 @@ source "$INSTALL_DIR/venv/bin/activate"
 # 🧰 Install Python dependencies inside venv
 echo "📦 Installing Python dependencies in virtual environment..."
 pip install --upgrade pip
-pip install pandas openpyxl praw python-dotenv
+pip install pandas openpyxl praw python-dotenv streamlit plotly
 
 # 🔑 Ask for Reddit API credentials
 echo ""
@@ -69,16 +69,47 @@ EOF
 
 chmod +x "$INSTALL_DIR/run_reddit_crawler.sh"
 
-# ⏰ Ask if user wants to schedule automatic crawling
-read -p "❓ Do you want to run the crawler automatically every 6 hours via cron? (y/n): " CRON_ANSWER
-if [[ "$CRON_ANSWER" =~ ^[Yy]$ ]]; then
-  CRON_CMD="0 */6 * * * $INSTALL_DIR/run_reddit_crawler.sh >> $INSTALL_DIR/data/logs/cron.log 2>&1"
+# ⏰ Ask how often the crawler should run
+echo ""
+echo "⏰ How often should the crawler run automatically?"
+echo "   1) Every 1 hour"
+echo "   2) Every 6 hours"
+echo "   3) Once per day (8:00 AM)"
+echo "   4) Custom schedule (cron format)"
+echo "   5) Skip (no cronjob)"
+read -p "➡ Choose an option [1-5]: " INTERVAL
+
+case $INTERVAL in
+  1)
+    CRON_EXPR="0 * * * *"
+    ;;
+  2)
+    CRON_EXPR="0 */6 * * *"
+    ;;
+  3)
+    CRON_EXPR="0 8 * * *"
+    ;;
+  4)
+    read -p "🛠️  Enter your custom cron expression (e.g., */30 * * * *): " CUSTOM_EXPR
+    CRON_EXPR="$CUSTOM_EXPR"
+    ;;
+  *)
+    echo "⏩ Skipping cronjob setup."
+    CRON_EXPR=""
+    ;;
+esac
+
+if [ -n "$CRON_EXPR" ]; then
+  CRON_CMD="$CRON_EXPR $INSTALL_DIR/run_reddit_crawler.sh >> $INSTALL_DIR/data/logs/cron.log 2>&1"
   (crontab -l 2>/dev/null; echo "$CRON_CMD") | crontab -
-  echo "✅ Cronjob added: Crawler will run every 6 hours."
+  echo "✅ Cronjob added: Crawler will run as scheduled."
 fi
 
 # ✅ Done
 echo ""
 echo "✅ Installation complete!"
-echo "➡ To run the crawler:"
+echo "➡ To run the crawler manually:"
 echo "   ./run_reddit_crawler.sh"
+echo ""
+echo "📊 To launch the dashboard:"
+echo "   streamlit run dashboard/dashboard.py"
