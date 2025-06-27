@@ -33,7 +33,7 @@ source "$INSTALL_DIR/venv/bin/activate"
 # 🛠️ Install Python dependencies inside venv
 echo "📦 Installing Python dependencies in virtual environment..."
 pip install --upgrade pip
-pip install pandas openpyxl praw python-dotenv streamlit plotly gspread google-auth google-auth-oauthlib
+pip install pandas openpyxl praw python-dotenv streamlit plotly gspread google-auth google-auth-oauthlib openai requests seaborn matplotlib
 
 # 🔑 Ask for Reddit API credentials
 echo ""
@@ -53,6 +53,10 @@ WEBHOOK_URL=
 GOOGLE_SHEETS_KEYFILE=
 GOOGLE_SHEETS_SPREADSHEET=
 CLEANUP_DAYS=7
+
+# AI providers:
+OPENAI_API_KEY=
+GEMINI_API_KEY=
 EOF
 
 echo "✅ .env file created."
