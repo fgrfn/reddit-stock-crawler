@@ -3,8 +3,8 @@
 echo "🔧 Reddit Stock Crawler Installer"
 echo "----------------------------------"
 
-# 📦 Install required system dependencies
-echo "📦 Installing required system dependencies..."
+# 📆 Install required system dependencies
+echo "📆 Installing required system dependencies..."
 sudo apt update
 sudo apt install -y python3 python3-venv python3-pip wget git
 
@@ -30,10 +30,10 @@ fi
 # 🧠 Activate virtual environment
 source "$INSTALL_DIR/venv/bin/activate"
 
-# 🧰 Install Python dependencies inside venv
+# 🛠️ Install Python dependencies inside venv
 echo "📦 Installing Python dependencies in virtual environment..."
 pip install --upgrade pip
-pip install pandas openpyxl praw python-dotenv streamlit plotly
+pip install pandas openpyxl praw python-dotenv streamlit plotly gspread google-auth google-auth-oauthlib
 
 # 🔑 Ask for Reddit API credentials
 echo ""
@@ -47,24 +47,22 @@ cat > "$INSTALL_DIR/secret.env" <<EOF
 REDDIT_CLIENT_ID=$CLIENT_ID
 REDDIT_CLIENT_SECRET=$CLIENT_SECRET
 REDDIT_USER_AGENT=$USER_AGENT
-EOF
 
-# ➕ Optional: Add integration configuration
-echo "" >> "$INSTALL_DIR/secret.env"
-echo "# Optional integrations:" >> "$INSTALL_DIR/secret.env"
-echo "WEBHOOK_URL=" >> "$INSTALL_DIR/secret.env"
-echo "GOOGLE_SHEETS_KEYFILE=" >> "$INSTALL_DIR/secret.env"
-echo "GOOGLE_SHEETS_SPREADSHEET=" >> "$INSTALL_DIR/secret.env"
-echo "CLEANUP_DAYS=7" >> "$INSTALL_DIR/secret.env"
+# Optional integrations:
+WEBHOOK_URL=
+GOOGLE_SHEETS_KEYFILE=
+GOOGLE_SHEETS_SPREADSHEET=
+CLEANUP_DAYS=7
+EOF
 
 echo "✅ .env file created."
 
-# 📥 Download stock symbol list
-echo "📥 Downloading NASDAQ & NYSE symbol list..."
+# 🗕️ Download stock symbol list
+echo "🗕️ Downloading NASDAQ & NYSE symbol list..."
 wget -O data/NAS-NYSE-cleaned.xlsx https://www.heise.de/downloads/18/4/8/7/4/3/8/6/NAS-NYSE-bereinigt.xlsx
 
 # 🧪 Generate symbols_list.pkl from Excel
-echo "🔧 Generating ticker symbol list..."
+echo "🖐 Generating ticker symbol list..."
 python3 crawler/ticker_pickle_generator.py
 
 # 🚀 Create launch script
@@ -115,7 +113,7 @@ if [ -n "$CRON_EXPR" ]; then
   echo "✅ Cronjob added: Crawler will run as scheduled."
 fi
 
-# 📊 Ask to auto-start dashboard on boot
+# 📈 Ask to auto-start dashboard on boot
 echo ""
 read -p "❓ Do you want to automatically launch the dashboard on boot? (y/n): " DASHBOARD_START
 if [[ "$DASHBOARD_START" =~ ^[Yy]$ ]]; then
@@ -130,5 +128,5 @@ echo "✅ Installation complete!"
 echo "➡ To run the crawler manually:"
 echo "   ./run_reddit_crawler.sh"
 echo ""
-echo "📊 To launch the dashboard manually:"
+echo "📈 To launch the dashboard manually:"
 echo "   streamlit run dashboard/dashboard.py"
