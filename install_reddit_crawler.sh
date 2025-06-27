@@ -14,10 +14,11 @@ if ! command -v python3 &> /dev/null; then
   exit 1
 fi
 
-# 📁 Ask for installation directory
-read -p "📁 Where should the Reddit Crawler be installed? (e.g., /home/reddit-bot): " INSTALL_DIR
+# 📁 Use current directory as install target
+INSTALL_DIR="$(pwd)"
+echo "📁 Installing to: $INSTALL_DIR"
+
 mkdir -p "$INSTALL_DIR"/{pickle,logs}
-cd "$INSTALL_DIR" || exit 1
 
 # 🔐 Create virtual environment
 if [ ! -d "$INSTALL_DIR/venv" ]; then
@@ -63,5 +64,4 @@ chmod +x "$INSTALL_DIR/run_reddit_crawler.sh"
 echo ""
 echo "✅ Installation complete!"
 echo "➡ To run the crawler:"
-echo "   cd $INSTALL_DIR"
 echo "   ./run_reddit_crawler.sh"
