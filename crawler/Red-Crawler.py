@@ -5,31 +5,33 @@ from collections import Counter
 import re
 import os
 from dotenv import load_dotenv
+from crawler.config import get_config
+from webhook_notifier import send_top_stocks_webhook
 
 def reddit_crawler():
     run_id = datetime.now().strftime("%y%m%d-%H%M")
     print(f"Crawler run ID: {run_id}")
 
-    load_dotenv(dotenv_path='secret.env')
+    config = get_config()
     reddit = praw.Reddit(
-        client_id=os.getenv('REDDIT_CLIENT_ID'),
-        client_secret=os.getenv('REDDIT_CLIENT_SECRET'),
-        user_agent=os.getenv('REDDIT_USER_AGENT')
+        client_id=config["reddit"]["client_id"],
+        client_secret=config["reddit"]["client_secret"],
+        user_agent=config["reddit"]["user_agent"]
     )
 
-    pattern_template = r'(?<!\w)(\${symbol}|{symbol})(?!\w)'
-    with open('data/symbols_list.pkl', 'rb') as f:
+    pattern_template = r"(?<!\w)(\${symbol}|{symbol})(?!\w)"
+    with open("data/symbols_list.pkl", "rb") as f:
         all_symbols = pickle.load(f)
 
     blacklist = {
-        'BE', 'GO', 'IT', 'OR', 'SO', 'NO', 'UP', 'FOR', 'ON', 'BY', 'AS', 'HE', 'AM',
-        'AN', 'AI', 'DD', 'OP', 'ALL', 'YOU', 'TV', 'PM', 'HAS', 'ARM', 'ARE', 'PUMP',
-        'EOD', 'DAY', 'WTF', 'HIT', 'NOW'
+        'BE', 'GO', 'IT', 'OR', 'SO', 'NO', 'UP', 'FOR', 'ON', 'BY', 'AS',
+        'HE', 'AM', 'AN', 'AI', 'DD', 'OP', 'ALL', 'YOU', 'TV', 'PM', 'HAS',
+        'ARM', 'ARE', 'PUMP', 'EOD', 'DAY', 'WTF', 'HIT', 'NOW'
     }
     symbols = [s for s in all_symbols if s not in blacklist]
 
     symbol_counts = Counter()
-    subreddit = reddit.subreddit('wallstreetbets')
+    subreddit = reddit.subreddit("wallstreetbets")
     cutoff_time = datetime.now() - timedelta(days=1)
 
     post_count = 0
@@ -46,17 +48,21 @@ def reddit_crawler():
             matches = len(re.findall(pattern, search_text))
             if matches > 0:
                 symbol_counts[symbol] += matches
-                print(f"→ {symbol}: {matches} matches")
+                print(f"→ {symbol}: {matches} mentions")
 
     filtered = {s: c for s, c in symbol_counts.items() if c > 5}
     if filtered:
         data = {'run_id': run_id, 'results': filtered, 'total_posts': post_count}
         os.makedirs('data/pickle', exist_ok=True)
-        with open(f'data/pickle/{run_id}_crawler-results.pkl', 'wb') as f:
+        file_path = f'data/pickle/{run_id}_crawler-results.pkl'
+        with open(file_path, 'wb') as f:
             pickle.dump(data, f)
-        print(f"\n✅ Results saved to: {run_id}_crawler-results.pkl")
+        print(f"\n✅ Results saved in: {file_path}")
+
+        # ✅ Send webhook notification
+        send_top_stocks_webhook(filtered, run_id)
     else:
-        print("\n🚫 No symbols passed the threshold.")
+        print("\n🚫 No symbols above threshold found.")
 
 if __name__ == "__main__":
     reddit_crawler()
