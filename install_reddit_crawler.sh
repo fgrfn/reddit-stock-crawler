@@ -61,9 +61,9 @@ python3 ticker_pickle_generator.py
 # 🚀 Create launch script
 cat > "$INSTALL_DIR/run_reddit_crawler.sh" <<EOF
 #!/bin/bash
-source "\$(dirname "\$0")/venv/bin/activate"
-python3 Red-Crawler.py
-python3 Red-Crawl-Table.py
+source "$(dirname "$0")/venv/bin/activate"
+python3 crawler/Red-Crawler.py
+python3 crawler/Red-Crawl-Table.py
 EOF
 
 chmod +x "$INSTALL_DIR/run_reddit_crawler.sh"
