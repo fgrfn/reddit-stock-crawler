@@ -9,6 +9,14 @@ mkdir -p "$INSTALL_DIR"/{pickle,logs}
 cd "$INSTALL_DIR" || exit 1
 
 # 2. Check for Python
+
+# Check for python3-venv
+if ! python3 -m ensurepip --version &> /dev/null; then
+  echo "❌ The 'python3-venv' package is missing. Please install it first."
+  echo "   On Debian/Ubuntu, run: sudo apt install python3-venv"
+  exit 1
+fi
+
 if ! command -v python3 &> /dev/null; then
   echo "❌ Python3 not found. Please install Python3."
   exit 1
