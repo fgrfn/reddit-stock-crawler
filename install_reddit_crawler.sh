@@ -1,146 +1,161 @@
-#!/bin/bash
+\#!/bin/bash
 
 echo "🔧 Reddit Stock Crawler Installer"
 echo "----------------------------------"
 
 # 📦 Install required system dependencies
+
 echo "📦 Installing required system dependencies..."
 sudo apt update
 sudo apt install -y python3 python3-venv python3-pip wget git
 
 # 🔍 Check for Python
+
 if ! command -v python3 &> /dev/null; then
-  echo "❌ Python3 not found. Please install Python3."
-  exit 1
+echo "❌ Python3 not found. Please install Python3."
+exit 1
 fi
 
 # 📁 Use current directory as install target
-INSTALL_DIR="$(pwd)"
-echo "📁 Installing to: $INSTALL_DIR"
 
-mkdir -p "$INSTALL_DIR/data/pickle"
-mkdir -p "$INSTALL_DIR/data/logs"
-mkdir -p "$INSTALL_DIR/dashboard"
-mkdir -p "$INSTALL_DIR/crawler-modules"
+INSTALL\_DIR="\$(pwd)"
+echo "📁 Installing to: \$INSTALL\_DIR"
+
+mkdir -p "\$INSTALL\_DIR/data/pickle"
+mkdir -p "\$INSTALL\_DIR/data/logs"
+mkdir -p "\$INSTALL\_DIR/dashboard"
+mkdir -p "\$INSTALL\_DIR/crawler-modules"
 
 # 🔐 Create virtual environment
-if [ ! -d "$INSTALL_DIR/venv" ]; then
-  echo "📦 Creating virtual environment..."
-  python3 -m venv "$INSTALL_DIR/venv"
+
+if \[ ! -d "\$INSTALL\_DIR/venv" ]; then
+echo "📦 Creating virtual environment..."
+python3 -m venv "\$INSTALL\_DIR/venv"
 fi
 
 # 🧠 Activate virtual environment
-source "$INSTALL_DIR/venv/bin/activate"
+
+source "\$INSTALL\_DIR/venv/bin/activate"
 
 # 🛠️ Install Python dependencies inside venv
+
 echo "📦 Installing Python dependencies in virtual environment..."
 pip install --upgrade pip
-pip install pandas openpyxl praw python-dotenv streamlit plotly gspread google-auth google-auth-oauthlib seaborn openai PyYAML
+pip install pandas openpyxl praw python-dotenv streamlit plotly gspread google-auth google-auth-oauthlib seaborn openai PyYAML croniter
 
 # 🔑 Ask for Reddit & API credentials
+
 echo ""
 echo "🔐 Please enter your API credentials:"
 
-read -p "Reddit Client ID: " CLIENT_ID
-read -p "Reddit Client Secret: " CLIENT_SECRET
-read -p "Reddit User Agent (e.g., reddit-bot:v1.0 by /u/yourname): " USER_AGENT
+read -p "Reddit Client ID: " CLIENT\_ID
+read -p "Reddit Client Secret: " CLIENT\_SECRET
+read -p "Reddit User Agent (e.g., reddit-bot\:v1.0 by /u/yourname): " USER\_AGENT
 
-read -p "OpenAI API Key (optional): " OPENAI_API_KEY
-read -p "Gemini API Key (optional): " GEMINI_API_KEY
+read -p "OpenAI API Key (optional): " OPENAI\_API\_KEY
+read -p "Gemini API Key (optional): " GEMINI\_API\_KEY
 
-read -p "Discord Webhook URL (optional): " WEBHOOK_URL
-read -p "Google Sheets JSON key file path (optional): " GDRIVE_KEY
-read -p "Google Sheet spreadsheet name (optional): " GDRIVE_SHEET
-read -p "Auto-cleanup days for pickle files (default 7): " CLEANUP_DAYS
-CLEANUP_DAYS=${CLEANUP_DAYS:-7}
+read -p "Discord Webhook URL (optional): " WEBHOOK\_URL
+read -p "Google Sheets JSON key file path (optional): " GDRIVE\_KEY
+read -p "Google Sheet spreadsheet name (optional): " GDRIVE\_SHEET
+read -p "Auto-cleanup days for pickle files (default 7): " CLEANUP\_DAYS
+CLEANUP\_DAYS=\${CLEANUP\_DAYS:-7}
+read -p "Cron schedule for crawler (e.g., '0 \* \* \* \*'): " CRON\_SCHEDULE
 
-# 📄 Create .env file
-cat > "$INSTALL_DIR/secret.env" <<EOF
-REDDIT_CLIENT_ID=$CLIENT_ID
-REDDIT_CLIENT_SECRET=$CLIENT_SECRET
-REDDIT_USER_AGENT=$USER_AGENT
+# 📄 Create config.yaml file
 
-OPENAI_API_KEY=$OPENAI_API_KEY
-GEMINI_API_KEY=$GEMINI_API_KEY
+cat > "\$INSTALL\_DIR/config.yaml" <\<EOF
 
-WEBHOOK_URL=$WEBHOOK_URL
-GOOGLE_SHEETS_KEYFILE=$GDRIVE_KEY
-GOOGLE_SHEETS_SPREADSHEET=$GDRIVE_SHEET
-CLEANUP_DAYS=$CLEANUP_DAYS
+# Reddit Stock Crawler Configuration
+
+# Reddit API credentials
+
+reddit\_client\_id: "\${CLIENT\_ID}"
+reddit\_client\_secret: "\${CLIENT\_SECRET}"
+reddit\_user\_agent: "\${USER\_AGENT}"
+
+# AI provider and keys
+
+ai\_provider: "\${OPENAI\_API\_KEY:+openai}\${OPENAI\_API\_KEY:+}"\${OPENAI\_API\_KEY:+}""
+openai\_api\_key: "\${OPENAI\_API\_KEY}"
+\${GEMINI\_API\_KEY:+gemini\_api\_key: "\${GEMINI\_API\_KEY}"}
+
+# Webhook and Google Sheets
+
+webhook\_url: "\${WEBHOOK\_URL}"
+google\_sheets\_keyfile: "\${GDRIVE\_KEY}"
+google\_sheets\_spreadsheet: "\${GDRIVE\_SHEET}"
+
+# Crawler settings
+
+pickle\_output\_path: "data/pickle"
+cleanup\_days: \${CLEANUP\_DAYS}
+cron\_schedule: "\${CRON\_SCHEDULE:-0 \* \* \* \*}"
 EOF
 
-echo "✅ .env file created."
+echo "✅ config.yaml created."
 
 # 📥 Download stock symbol list
-echo "🗕️ Downloading NASDAQ & NYSE symbol list..."
-wget -O data/NAS-NYSE-cleaned.xlsx https://www.heise.de/downloads/18/4/8/7/4/3/8/6/NAS-NYSE-bereinigt.xlsx
 
-# 🧪 Generate symbols_list.pkl from Excel
+echo "🗕️ Downloading NASDAQ & NYSE symbol list..."
+wget -O data/NAS-NYSE-cleaned.xlsx [https://www.heise.de/downloads/18/4/8/7/4/3/8/6/NAS-NYSE-bereinigt.xlsx](https://www.heise.de/downloads/18/4/8/7/4/3/8/6/NAS-NYSE-bereinigt.xlsx)
+
+# 🖐 Generate symbols\_list.pkl from Excel
+
 echo "🖐 Generating ticker symbol list..."
-python3 crawler_modules/ticker_pickle_generator.py
+python3 crawler\_modules/ticker\_pickle\_generator.py
 
 # 🚀 Create launch script
-cat > "$INSTALL_DIR/run_reddit_crawler.sh" <<EOF
-#!/bin/bash
+
+cat > "\$INSTALL\_DIR/run\_reddit\_crawler.sh" <\<EOF
+\#!/bin/bash
 
 # Change to the directory where this script is located
-cd "$(dirname "$0")"
+
+cd "\$(dirname "\$0")"
 
 # Activate the virtual environment
+
 source venv/bin/activate
 
 # Ensure the main project directory is in Python's module search path
-export PYTHONPATH=$(pwd)
+
+export PYTHONPATH=\$(pwd)
 
 # Execute the crawler modules
-python3 crawler_modules/Red-Crawler.py
-python3 crawler_modules/Red-Crawl-Table.py
-python3 crawler_modules/cleanup_pickle_files.py
-python3 crawler_modules/upload_to_gsheets.py
+
+python3 crawler\_modules/Red-Crawler.py
+python3 crawler\_modules/cleanup\_pickle\_files.py
+python3 crawler\_modules/upload\_to\_gsheets.py
+
+# Launch dashboard UI
+
 streamlit run dashboard/dashboard.py
 EOF
 
-chmod +x "$INSTALL_DIR/run_reddit_crawler.sh"
+chmod +x "\$INSTALL\_DIR/run\_reddit\_crawler.sh"
 
-# ⏰ Ask how often the crawler should run
-echo ""
-echo "⏰ How often should the crawler run automatically?"
-echo "   1) Every 1 hour"
-echo "   2) Every 6 hours"
-echo "   3) Once per day (8:00 AM)"
-echo "   4) Custom schedule (cron format)"
-echo "   5) Skip (no cronjob)"
-read -p "➡ Choose an option [1-5]: " INTERVAL
+# ⏰ Setup cronjob for automatic crawler runs
 
-case $INTERVAL in
-  1) CRON_EXPR="0 * * * *" ;;
-  2) CRON_EXPR="0 */6 * * *" ;;
-  3) CRON_EXPR="0 8 * * *" ;;
-  4) read -p "🛠️ Enter your custom cron expression (e.g., */30 * * * *): " CUSTOM_EXPR
-     CRON_EXPR="$CUSTOM_EXPR" ;;
-  *) echo "⏩ Skipping cronjob setup."; CRON_EXPR="" ;;
-esac
-
-if [ -n "$CRON_EXPR" ]; then
-  CRON_CMD="$CRON_EXPR $INSTALL_DIR/run_reddit_crawler.sh >> $INSTALL_DIR/data/logs/cron.log 2>&1"
-  (crontab -l 2>/dev/null; echo "$CRON_CMD") | crontab -
-  echo "✅ Cronjob added: Crawler will run as scheduled."
+if \[ -n "\$CRON\_SCHEDULE" ]; then
+CRON\_CMD="\$CRON\_SCHEDULE cd \$INSTALL\_DIR && ./run\_reddit\_crawler.sh >> \$INSTALL\_DIR/data/logs/cron.log 2>&1"
+(crontab -l 2>/dev/null; echo "\$CRON\_CMD") | crontab -
+echo "✅ Cronjob added: \$CRON\_SCHEDULE"
 fi
 
 # 📈 Ask to auto-start dashboard on boot
+
 echo ""
-read -p "❓ Do you want to automatically launch the dashboard on boot? (y/n): " DASHBOARD_START
-if [[ "$DASHBOARD_START" =~ ^[Yy]$ ]]; then
-  DASHBOARD_CMD="@reboot $INSTALL_DIR/venv/bin/streamlit run $INSTALL_DIR/dashboard/dashboard.py >> $INSTALL_DIR/data/logs/dashboard.log 2>&1"
-  (crontab -l 2>/dev/null; echo "$DASHBOARD_CMD") | crontab -
-  echo "✅ Dashboard autostart added (via cron @reboot)."
+read -p "❓ Do you want to automatically launch the dashboard on boot? (y/n): " DASH\_START
+if \[\[ "\$DASH\_START" =\~ ^\[Yy]\$ ]]; then
+DASH\_CMD="@reboot cd \$INSTALL\_DIR && ./run\_reddit\_crawler.sh >> \$INSTALL\_DIR/data/logs/dashboard.log 2>&1"
+(crontab -l 2>/dev/null; echo "\$DASH\_CMD") | crontab -
+echo "✅ Dashboard autostart added."
 fi
 
 # ✅ Done
+
 echo ""
 echo "✅ Installation complete!"
-echo "➡ To run the crawler manually:"
-echo "   ./run_reddit_crawler.sh"
-echo ""
-echo "📈 To launch the dashboard manually:"
-echo "   streamlit run dashboard/dashboard.py"
+echo "Run the crawler manually with: ./run\_reddit\_crawler.sh"
+echo "Start the dashboard manually with: streamlit run dashboard/dashboard.py"
