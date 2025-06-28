@@ -6,6 +6,7 @@ import json
 from datetime import datetime
 from google.oauth2.service_account import Credentials
 from crawler_modules.config import get_config
+import streamlit as st
 
 
 def upload_latest_results_to_gsheets():
@@ -62,3 +63,17 @@ def upload_latest_results_to_gsheets():
 
 if __name__ == "__main__":
     upload_latest_results_to_gsheets()
+
+def display_gsheets_status():
+    """
+    Zeigt im Streamlit-Dashboard an,
+    ob die Google-Sheets-Integration konfiguriert ist.
+    """
+    cfg = get_config()
+    enabled = cfg.get('google_sheets_enabled', False) \
+              or bool(cfg.get('google_sheets_credentials'))
+    
+    if enabled:
+        st.success("✅ Google Sheets integration enabled")
+    else:
+        st.warning("⚠️ Google Sheets integration not configured")
