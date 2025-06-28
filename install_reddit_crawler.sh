@@ -162,5 +162,7 @@ fi
 # ✅ Done
 echo ""
 echo "✅ Installation complete!"
+
 echo "Run the crawler manually with: ./run_reddit_crawler.sh"
+
 echo "Start the dashboard manually with: streamlit run dashboard/dashboard.py"
