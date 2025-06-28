@@ -3,7 +3,7 @@
 echo "🔧 Reddit Stock Crawler Installer"
 echo "----------------------------------"
 
-# 📦 Install required system dependencies
+# 📦 Install system dependencies
 echo "📦 Installing required system dependencies..."
 sudo apt update
 sudo apt install -y python3 python3-venv python3-pip wget git 
@@ -14,7 +14,7 @@ if ! command -v python3 &> /dev/null; then
   exit 1
 fi
 
-# 📁 Use current directory as install target
+# 📁 Set install directory
 INSTALL_DIR="$(pwd)"
 echo "📁 Installing to: $INSTALL_DIR"
 
@@ -37,10 +37,9 @@ echo "📦 Installing Python dependencies in virtual environment..."
 pip install --upgrade pip
 pip install pandas openpyxl praw python-dotenv streamlit plotly gspread google-auth google-auth-oauthlib seaborn openai PyYAML croniter
 
-# 🔑 Ask for Reddit & API credentials
+# 🔑 Ask for credentials
 echo ""
 echo "🔐 Please enter your API credentials:"
-
 read -p "Reddit Client ID: " CLIENT_ID
 read -p "Reddit Client Secret: " CLIENT_SECRET
 read -p "Reddit User Agent (e.g., reddit-bot:v1.0 by /u/yourname): " USER_AGENT
@@ -58,55 +57,45 @@ read -p "Google Sheet spreadsheet name (optional): " GDRIVE_SHEET
 read -p "Auto-cleanup days for pickle files (default 7): " CLEANUP_INPUT
 CLEANUP_DAYS=${CLEANUP_INPUT:-7}
 
-# 📄 Create config.yaml file
+# 📄 Generate config.yaml
 cat > "$INSTALL_DIR/config.yaml" <<EOF
 # Reddit Stock Crawler Configuration
-
-# Reddit API credentials
 reddit_client_id: "${CLIENT_ID}"
 reddit_client_secret: "${CLIENT_SECRET}"
 reddit_user_agent: "${USER_AGENT}"
-
-# AI provider and keys
 ai_provider: "${AI_PROVIDER}"
 openai_api_key: "${OPENAI_API_KEY}"
 ${GEMINI_API_KEY:+gemini_api_key: "${GEMINI_API_KEY}"}
-
-# Webhook and Google Sheets
 webhook_url: "${WEBHOOK_URL}"
 google_sheets_keyfile: "${GDRIVE_KEY}"
 google_sheets_spreadsheet: "${GDRIVE_SHEET}"
-
-# Crawler settings
 pickle_output_path: "data/pickle"
 cleanup_days: ${CLEANUP_DAYS}
 EOF
 
 echo "✅ config.yaml created."
 
-# 📥 Download stock symbol list
+# 📥 Download ticker list
 echo "🗕️ Downloading NASDAQ & NYSE symbol list..."
 wget -O data/NAS-NYSE-cleaned.xlsx https://www.heise.de/downloads/18/4/8/7/4/3/8/6/NAS-NYSE-bereinigt.xlsx
 
-# 🖐 Generate symbols_list.pkl from Excel
+# 📦 Generate ticker pickle
 echo "🖐 Generating ticker symbol list..."
 python3 crawler_modules/ticker_pickle_generator.py
 
-# 🚀 Create launch script
+# 🚀 Create run script
 cat > "$INSTALL_DIR/run_reddit_crawler.sh" <<EOF
 #!/bin/bash
-
-cd "$(dirname "\$0")"
+cd "\$(dirname "\$0")"
 source venv/bin/activate
 export PYTHONPATH=\$(pwd)
 python3 crawler_modules/Red-Crawler.py
 python3 crawler_modules/cleanup_pickle_files.py
 python3 crawler_modules/upload_to_gsheets.py
 EOF
-
 chmod +x "$INSTALL_DIR/run_reddit_crawler.sh"
 
-# ⏰ Ask how often the crawler should run automatically
+# ⏰ Cronjob setup
 echo ""
 echo "⏰ How often should the crawler run automatically?"
 echo "   1) Every 1 hour"
@@ -120,7 +109,7 @@ case $INTERVAL in
   1) CRON_EXPR="0 * * * *" ;;
   2) CRON_EXPR="0 */6 * * *" ;;
   3) CRON_EXPR="0 8 * * *" ;;
-  4) read -p "🛠️ Enter your custom cron expression (e.g., */30 * * * *): " CUSTOM_EXPR
+  4) read -p "🛠️ Enter your custom cron expression: " CUSTOM_EXPR
      CRON_EXPR="$CUSTOM_EXPR" ;;
   *) echo "⏩ Skipping cronjob setup."; CRON_EXPR="" ;;
 esac
@@ -128,29 +117,58 @@ esac
 if [ -n "$CRON_EXPR" ]; then
   CRON_CMD="$CRON_EXPR $INSTALL_DIR/run_reddit_crawler.sh >> $INSTALL_DIR/data/logs/cron.log 2>&1"
   (crontab -l 2>/dev/null; echo "$CRON_CMD") | crontab -
-  echo "✅ Cronjob added: Crawler will run as scheduled."
-
   echo "" >> "$INSTALL_DIR/config.yaml"
   echo "# Cron schedule for automated runs" >> "$INSTALL_DIR/config.yaml"
   echo "cron_schedule: \"$CRON_EXPR\"" >> "$INSTALL_DIR/config.yaml"
+  echo "✅ Cronjob added."
 fi
 
-# 📈 Ask to auto-start dashboard on boot
-echo ""
-read -p "❓ Do you want to automatically launch the dashboard on boot? (y/n): " DASH_START
-if [[ "$DASH_START" =~ ^[Yy]$ ]]; then
-  DASH_CMD="@reboot cd $INSTALL_DIR && ./run_reddit_crawler.sh >> $INSTALL_DIR/data/logs/dashboard.log 2>&1"
-  (crontab -l 2>/dev/null; echo "$DASH_CMD") | crontab -
-  echo "✅ Dashboard autostart added."
-fi
+# 🖥️ Create systemd service for dashboard
+echo "🛠️ Creating systemd service for dashboard..."
+SERVICE_NAME="reddit_dashboard"
+SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
+
+sudo bash -c "cat > $SERVICE_FILE" <<EOF
+[Unit]
+Description=Reddit Dashboard Service
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=${INSTALL_DIR}
+ExecStart=${INSTALL_DIR}/venv/bin/streamlit run dashboard/dashboard.py
+Restart=always
+User=$(whoami)
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=default.target
+EOF
+
+sudo systemctl daemon-reexec
+sudo systemctl daemon-reload
+sudo systemctl enable $SERVICE_NAME
+sudo systemctl start $SERVICE_NAME
+echo "✅ Dashboard service started and enabled."
+
+# 🧩 Create helper scripts
+cat > "$INSTALL_DIR/status-dashboard.sh" <<EOF
+#!/bin/bash
+systemctl status $SERVICE_NAME
+EOF
+chmod +x "$INSTALL_DIR/status-dashboard.sh"
+
+cat > "$INSTALL_DIR/stop-dashboard.sh" <<EOF
+#!/bin/bash
+systemctl stop $SERVICE_NAME
+systemctl disable $SERVICE_NAME
+echo "⛔ Dashboard service stopped and disabled."
+EOF
+chmod +x "$INSTALL_DIR/stop-dashboard.sh"
 
 # ✅ Done
 echo ""
 echo "✅ Installation complete!"
-echo "Run the crawler manually with: ./run_reddit_crawler.sh"
-echo "Start the dashboard manually with: streamlit run dashboard/dashboard.py"
-
-# 🚀 Launch dashboard immediately
-echo ""
-echo "🚀 Launching dashboard now..."
-streamlit run dashboard/dashboard.py
+echo "Run crawler manually with: ./run_reddit_crawler.sh"
+echo "Start dashboard manually with: streamlit run dashboard/dashboard.py"
+echo "Check dashboard status: ./status-dashboard.sh"
