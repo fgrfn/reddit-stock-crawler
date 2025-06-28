@@ -32,13 +32,16 @@ def run_reddit_crawler():
             for symbol in symbols:
                 if f"${symbol}" in title or f" {symbol} " in title:
                     mention_counter[symbol] = mention_counter.get(symbol, 0) + 1
+                    print(f"→ {symbol}: {mention_counter[symbol]} Treffer")
 
     # Take top 5 mentioned symbols
     top_symbols = sorted(mention_counter.items(), key=lambda x: x[1], reverse=True)[:5]
     result = {}
     now = time.strftime("%Y-%m-%d %H:%M:%S")
 
+    print("\n📊 Top 5 meistgenannte Symbole:")
     for symbol, count in top_symbols:
+        print(f"→ {symbol}: {count} Treffer")
         result[symbol] = {
             "trend": "neutral",
             "timestamp": now,
