@@ -5,7 +5,7 @@ import streamlit as st
 import seaborn as sns
 import matplotlib.pyplot as plt
 from datetime import datetime
-from crawler.upload_to_gsheets import display_gsheets_status
+from crawler_modules.upload_to_gsheets import display_gsheets_status
 from dotenv import load_dotenv
 import requests
 import json
