@@ -77,16 +77,16 @@ wget -O data/NAS-NYSE-cleaned.xlsx https://www.heise.de/downloads/18/4/8/7/4/3/8
 
 # 🧪 Generate symbols_list.pkl from Excel
 echo "🖐 Generating ticker symbol list..."
-python3 crawler/ticker_pickle_generator.py
+python3 crawler_modules/ticker_pickle_generator.py
 
 # 🚀 Create launch script
 cat > "$INSTALL_DIR/run_reddit_crawler.sh" <<EOF
 #!/bin/bash
 source "\$(dirname "\$0")/venv/bin/activate"
-python3 crawler-modules/Red-Crawler.py
-python3 crawler-modules/Red-Crawl-Table.py
-python3 crawler-modules/cleanup_pickle_files.py
-python3 crawler-modules/upload_to_gsheets.py
+python3 crawler_modules/Red-Crawler.py
+python3 crawler_modules/Red-Crawl-Table.py
+python3 crawler_modules/cleanup_pickle_files.py
+python3 crawler_modules/upload_to_gsheets.py
 EOF
 
 chmod +x "$INSTALL_DIR/run_reddit_crawler.sh"
