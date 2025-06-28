@@ -40,6 +40,7 @@ pip install pandas openpyxl praw python-dotenv streamlit plotly gspread google-a
 # 🔑 Ask for Reddit & API credentials
 echo ""
 echo "🔐 Please enter your API credentials:"
+
 read -p "Reddit Client ID: " CLIENT_ID
 read -p "Reddit Client Secret: " CLIENT_SECRET
 read -p "Reddit User Agent (e.g., reddit-bot:v1.0 by /u/yourname): " USER_AGENT
@@ -57,7 +58,7 @@ read -p "Google Sheet spreadsheet name (optional): " GDRIVE_SHEET
 read -p "Auto-cleanup days for pickle files (default 7): " CLEANUP_INPUT
 CLEANUP_DAYS=${CLEANUP_INPUT:-7}
 
-# 📄 Create config.yaml file (initial, ohne cron_schedule)
+# 📄 Create config.yaml file
 cat > "$INSTALL_DIR/config.yaml" <<EOF
 # Reddit Stock Crawler Configuration
 
@@ -95,13 +96,12 @@ python3 crawler_modules/ticker_pickle_generator.py
 cat > "$INSTALL_DIR/run_reddit_crawler.sh" <<EOF
 #!/bin/bash
 
-cd "\$(dirname "\$0")"
+cd "$(dirname "\$0")"
 source venv/bin/activate
 export PYTHONPATH=\$(pwd)
 python3 crawler_modules/Red-Crawler.py
 python3 crawler_modules/cleanup_pickle_files.py
 python3 crawler_modules/upload_to_gsheets.py
-streamlit run dashboard/dashboard.py
 EOF
 
 chmod +x "$INSTALL_DIR/run_reddit_crawler.sh"
@@ -130,7 +130,6 @@ if [ -n "$CRON_EXPR" ]; then
   (crontab -l 2>/dev/null; echo "$CRON_CMD") | crontab -
   echo "✅ Cronjob added: Crawler will run as scheduled."
 
-  # ➕ Write cron to config.yaml
   echo "" >> "$INSTALL_DIR/config.yaml"
   echo "# Cron schedule for automated runs" >> "$INSTALL_DIR/config.yaml"
   echo "cron_schedule: \"$CRON_EXPR\"" >> "$INSTALL_DIR/config.yaml"
@@ -150,3 +149,8 @@ echo ""
 echo "✅ Installation complete!"
 echo "Run the crawler manually with: ./run_reddit_crawler.sh"
 echo "Start the dashboard manually with: streamlit run dashboard/dashboard.py"
+
+# 🚀 Launch dashboard immediately
+echo ""
+echo "🚀 Launching dashboard now..."
+streamlit run dashboard/dashboard.py
