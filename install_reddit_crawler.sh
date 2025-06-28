@@ -6,7 +6,7 @@ echo "----------------------------------"
 # 📦 Install required system dependencies
 echo "📦 Installing required system dependencies..."
 sudo apt update
-sudo apt install -y python3 python3-venv python3-pip wget git
+sudo apt install -y python3 python3-venv python3-pip wget git 
 
 # 🔍 Check for Python
 if ! command -v python3 &> /dev/null; then
