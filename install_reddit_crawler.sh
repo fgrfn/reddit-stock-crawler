@@ -82,7 +82,13 @@ python3 crawler_modules/ticker_pickle_generator.py
 # 🚀 Create launch script
 cat > "$INSTALL_DIR/run_reddit_crawler.sh" <<EOF
 #!/bin/bash
-source "\$(dirname "\$0")/venv/bin/activate"
+# Change to the directory where this script is located
+cd "$(dirname "$0")"
+# Activate the virtual environment
+source venv/bin/activate
+# Ensure the main project directory is in Python's module search path
+export PYTHONPATH=$(pwd)
+# Execute the crawler modules
 python3 crawler_modules/Red-Crawler.py
 python3 crawler_modules/Red-Crawl-Table.py
 python3 crawler_modules/cleanup_pickle_files.py
