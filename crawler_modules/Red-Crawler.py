@@ -42,12 +42,15 @@ def run_reddit_crawler():
         print(f"❌ Error reading Excel file '{excel_path}': {e}")
         sys.exit(1)
 
-    # Apply blacklist to avoid false positives from common words
-    blacklist = {"FOR", "ON", "ARE", "YOU", "ALL", "GO"}
+    # Apply blacklist from original Heise article
+    blacklist = {
+        "FOR", "ON", "ARE", "YOU", "ALL", "GO", "IT", "AS", "OR",
+        "BY", "TO", "IN", "OUT", "GET", "HAS", "WAS", "HAD", "JUNE", "MAY", "AI"
+    }
     symbols -= blacklist
 
     mention_counter = {}
-    subreddits = ["wallstreetbets", "stocks", "investing"]
+    subreddits = ["wallstreetbets", "wallstreetbetsGER"]
     posts_per_subreddit = 100
     logs = []
 
