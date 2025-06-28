@@ -40,7 +40,6 @@ pip install pandas openpyxl praw python-dotenv streamlit plotly gspread google-a
 # 🔑 Ask for Reddit & API credentials
 echo ""
 echo "🔐 Please enter your API credentials:"
-
 read -p "Reddit Client ID: " CLIENT_ID
 read -p "Reddit Client Secret: " CLIENT_SECRET
 read -p "Reddit User Agent (e.g., reddit-bot:v1.0 by /u/yourname): " USER_AGENT
@@ -58,10 +57,7 @@ read -p "Google Sheet spreadsheet name (optional): " GDRIVE_SHEET
 read -p "Auto-cleanup days for pickle files (default 7): " CLEANUP_INPUT
 CLEANUP_DAYS=${CLEANUP_INPUT:-7}
 
-read -p "Cron schedule for crawler (default '0 * * * *'): " CRON_INPUT
-CRON_SCHEDULE=${CRON_INPUT:-"0 * * * *"}
-
-# 📄 Create config.yaml file
+# 📄 Create config.yaml file (initial, ohne cron_schedule)
 cat > "$INSTALL_DIR/config.yaml" <<EOF
 # Reddit Stock Crawler Configuration
 
@@ -83,7 +79,6 @@ google_sheets_spreadsheet: "${GDRIVE_SHEET}"
 # Crawler settings
 pickle_output_path: "data/pickle"
 cleanup_days: ${CLEANUP_DAYS}
-cron_schedule: "${CRON_SCHEDULE}"
 EOF
 
 echo "✅ config.yaml created."
@@ -100,21 +95,12 @@ python3 crawler_modules/ticker_pickle_generator.py
 cat > "$INSTALL_DIR/run_reddit_crawler.sh" <<EOF
 #!/bin/bash
 
-# Change to the directory where this script is located
-cd "$(dirname "\$0")"
-
-# Activate the virtual environment
+cd "\$(dirname "\$0")"
 source venv/bin/activate
-
-# Ensure the main project directory is in Python's module search path
-export PYTHONPATH=$(pwd)
-
-# Execute the crawler modules
+export PYTHONPATH=\$(pwd)
 python3 crawler_modules/Red-Crawler.py
 python3 crawler_modules/cleanup_pickle_files.py
 python3 crawler_modules/upload_to_gsheets.py
-
-# Launch dashboard UI
 streamlit run dashboard/dashboard.py
 EOF
 
@@ -153,7 +139,7 @@ fi
 # 📈 Ask to auto-start dashboard on boot
 echo ""
 read -p "❓ Do you want to automatically launch the dashboard on boot? (y/n): " DASH_START
-if [[ "\$DASH_START" =~ ^[Yy]$ ]]; then
+if [[ "$DASH_START" =~ ^[Yy]$ ]]; then
   DASH_CMD="@reboot cd $INSTALL_DIR && ./run_reddit_crawler.sh >> $INSTALL_DIR/data/logs/dashboard.log 2>&1"
   (crontab -l 2>/dev/null; echo "$DASH_CMD") | crontab -
   echo "✅ Dashboard autostart added."
@@ -162,7 +148,5 @@ fi
 # ✅ Done
 echo ""
 echo "✅ Installation complete!"
-
 echo "Run the crawler manually with: ./run_reddit_crawler.sh"
-
 echo "Start the dashboard manually with: streamlit run dashboard/dashboard.py"
