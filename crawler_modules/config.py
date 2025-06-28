@@ -16,10 +16,11 @@ def get_config():
     Lädt Konfiguration aus `config.yaml` oder Umgebungsvariablen.
     Gibt ein Config-Objekt zurück, das Attribute und .get() unterstützt.
     """
+    # Projekt-Root ist eine Ebene über diesem Modul
     project_root = os.path.dirname(os.path.dirname(__file__))
     config_path = os.path.join(project_root, "config.yaml")
 
-    # YAML laden, falls verfügbar
+    # YAML laden, falls installiert und Datei vorhanden
     raw_cfg = {}
     if yaml:
         try:
@@ -28,30 +29,30 @@ def get_config():
         except FileNotFoundError:
             raw_cfg = {}
 
-    # Env-Overrides
+    # Environment-Overrides für alle relevanten Keys
     env_map = {
-        "OPENAI_API_KEY": "openai_api_key",
-        "GEMINI_API_KEY": "gemini_api_key",
-        "WEBHOOK_URL": "webhook_url",
-        "AI_PROVIDER": "ai_provider",
-        "PICKLE_OUTPUT_PATH": "pickle_output_path",
-        "GOOGLE_SHEETS_ENABLED": "google_sheets_enabled",
-        "GOOGLE_SHEETS_CREDENTIALS": "google_sheets_credentials",
-        "CRON_SCHEDULE": "cron_schedule",
-        "CLEANUP_DAYS": "cleanup_days",
-        "GOOGLE_SHEETS_KEYFILE": "google_sheets_keyfile",
+        "REDDIT_CLIENT_ID":          "reddit_client_id",
+        "REDDIT_CLIENT_SECRET":      "reddit_client_secret",
+        "REDDIT_USER_AGENT":         "reddit_user_agent",
+        "OPENAI_API_KEY":            "openai_api_key",
+        "GEMINI_API_KEY":            "gemini_api_key",
+        "AI_PROVIDER":               "ai_provider",
+        "WEBHOOK_URL":               "webhook_url",
+        "GOOGLE_SHEETS_KEYFILE":     "google_sheets_keyfile",
+        "GOOGLE_SHEETS_SPREADSHEET": "google_sheets_spreadsheet",
+        "PICKLE_OUTPUT_PATH":        "pickle_output_path",
+        "CLEANUP_DAYS":              "cleanup_days",
+        "CRON_SCHEDULE":             "cron_schedule",
     }
     for env_var, key in env_map.items():
         val = os.getenv(env_var)
         if val is not None:
-            if key == 'google_sheets_enabled':
-                raw_cfg[key] = val.lower() in ('1', 'true', 'yes')
-            elif key == 'cleanup_days':
+            if key == 'cleanup_days':
                 raw_cfg[key] = int(val)
             else:
                 raw_cfg[key] = val
 
-    # Default-Werte
+    # Default-Werte, falls nicht gesetzt
     raw_cfg.setdefault('ai_provider', 'openai')
     raw_cfg.setdefault('pickle_output_path', os.path.join(project_root, 'data', 'pickle'))
     raw_cfg.setdefault('cleanup_days', 7)
