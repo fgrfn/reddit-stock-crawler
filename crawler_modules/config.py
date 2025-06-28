@@ -1,26 +1,39 @@
 import os
-from dotenv import load_dotenv
+import yaml
+from types import SimpleNamespace
 
-# Load .env once when this module is imported
-load_dotenv(dotenv_path="secret.env")
 
 def get_config():
     """
-    Reads environment configuration from .env file
-    and returns a structured config dictionary.
+    Lädt die Konfiguration aus der Datei `config.yaml` im Projekt-Root
+    und gibt sie als Objekt zurück, sodass auf Werte per Attribute zugegriffen werden kann.
     """
-    config = {
-        "reddit": {
-            "client_id": os.getenv("REDDIT_CLIENT_ID"),
-            "client_secret": os.getenv("REDDIT_CLIENT_SECRET"),
-            "user_agent": os.getenv("REDDIT_USER_AGENT"),
-        },
-        "webhook_url": os.getenv("WEBHOOK_URL"),
-        "google_sheets": {
-            "keyfile": os.getenv("GOOGLE_SHEETS_KEYFILE"),
-            "spreadsheet": os.getenv("GOOGLE_SHEETS_SPREADSHEET"),
-        },
-        "cleanup_days": int(os.getenv("CLEANUP_DAYS", 7))
-    }
+    # Projekt-Root ermitteln (eine Ebene über diesem Modul)
+    project_root = os.path.dirname(os.path.dirname(__file__))
+    config_path = os.path.join(project_root, "config.yaml")
 
-    return config
+    # YAML-Datei laden
+    with open(config_path, "r") as f:
+        raw_cfg = yaml.safe_load(f) or {}
+
+    # Optional: Umgebungsvariablen überschreiben bestimmte Keys
+    env_overrides = {
+        "OPENAI_API_KEY": "openai_api_key",
+        "GEMINI_API_KEY": "gemini_api_key",
+        "WEBHOOK_URL": "webhook_url",
+        "AI_PROVIDER": "ai_provider",
+        "PICKLE_OUTPUT_PATH": "pickle_output_path",
+        "GOOGLE_SHEETS_ENABLED": "google_sheets_enabled",
+        "GOOGLE_SHEETS_CREDENTIALS": "google_sheets_credentials",
+    }
+    for env_var, key in env_overrides.items():
+        val = os.getenv(env_var)
+        if val is not None:
+            # Boolean-Konvertierung für Flags
+            if key == "google_sheets_enabled":
+                raw_cfg[key] = val.lower() in ("1", "true", "yes")
+            else:
+                raw_cfg[key] = val
+
+    # In SimpleNamespace packen für cfg.attr Zugriff
+    return SimpleNamespace(**raw_cfg)
