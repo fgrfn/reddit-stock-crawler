@@ -120,11 +120,34 @@ EOF
 
 chmod +x "$INSTALL_DIR/run_reddit_crawler.sh"
 
-# ⏰ Setup cronjob for automatic crawler runs
-if [ -n "$CRON_SCHEDULE" ]; then
-  CRON_CMD="$CRON_SCHEDULE cd $INSTALL_DIR && ./run_reddit_crawler.sh >> $INSTALL_DIR/data/logs/cron.log 2>&1"
+# ⏰ Ask how often the crawler should run automatically
+echo ""
+echo "⏰ How often should the crawler run automatically?"
+echo "   1) Every 1 hour"
+echo "   2) Every 6 hours"
+echo "   3) Once per day (8:00 AM)"
+echo "   4) Custom schedule (cron format)"
+echo "   5) Skip (no cronjob)"
+read -p "➡ Choose an option [1-5]: " INTERVAL
+
+case $INTERVAL in
+  1) CRON_EXPR="0 * * * *" ;;
+  2) CRON_EXPR="0 */6 * * *" ;;
+  3) CRON_EXPR="0 8 * * *" ;;
+  4) read -p "🛠️ Enter your custom cron expression (e.g., */30 * * * *): " CUSTOM_EXPR
+     CRON_EXPR="$CUSTOM_EXPR" ;;
+  *) echo "⏩ Skipping cronjob setup."; CRON_EXPR="" ;;
+esac
+
+if [ -n "$CRON_EXPR" ]; then
+  CRON_CMD="$CRON_EXPR $INSTALL_DIR/run_reddit_crawler.sh >> $INSTALL_DIR/data/logs/cron.log 2>&1"
   (crontab -l 2>/dev/null; echo "$CRON_CMD") | crontab -
-  echo "✅ Cronjob added: $CRON_SCHEDULE"
+  echo "✅ Cronjob added: Crawler will run as scheduled."
+
+  # ➕ Write cron to config.yaml
+  echo "" >> "$INSTALL_DIR/config.yaml"
+  echo "# Cron schedule for automated runs" >> "$INSTALL_DIR/config.yaml"
+  echo "cron_schedule: \"$CRON_EXPR\"" >> "$INSTALL_DIR/config.yaml"
 fi
 
 # 📈 Ask to auto-start dashboard on boot
