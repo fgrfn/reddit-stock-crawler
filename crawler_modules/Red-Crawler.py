@@ -22,6 +22,10 @@ def run_reddit_crawler():
     symbols_df = pd.read_excel("data/NAS-NYSE-cleaned.xlsx")
     symbols = set(symbols_df["ACT Symbol"].dropna().str.upper())
 
+    # Apply blacklist to avoid false positives from common words
+    blacklist = {"FOR", "ON", "ARE", "YOU", "ALL", "GO"}
+    symbols -= blacklist
+
     mention_counter = {}
     subreddits = ["wallstreetbets", "stocks", "investing"]
     posts_per_subreddit = 100
