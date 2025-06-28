@@ -1,68 +1,62 @@
-import pickle
-import praw
-from datetime import datetime, timedelta
-from collections import Counter
-import re
+# crawler_modules/Red-Crawler.py
 import os
-from dotenv import load_dotenv
+import time
+import pickle
 from crawler_modules.config import get_config
-from webhook_notifier import send_top_stocks_webhook
+from crawler_modules.webhook_notifier import notify_webhook
 
-def reddit_crawler():
-    run_id = datetime.now().strftime("%y%m%d-%H%M")
-    print(f"Crawler run ID: {run_id}")
-
-    config = get_config()
-    reddit = praw.Reddit(
-        client_id=config["reddit"]["client_id"],
-        client_secret=config["reddit"]["client_secret"],
-        user_agent=config["reddit"]["user_agent"]
-    )
-
-    pattern_template = r"(?<!\w)(\${symbol}|{symbol})(?!\w)"
-    with open("data/symbols_list.pkl", "rb") as f:
-        all_symbols = pickle.load(f)
-
-    blacklist = {
-        'BE', 'GO', 'IT', 'OR', 'SO', 'NO', 'UP', 'FOR', 'ON', 'BY', 'AS',
-        'HE', 'AM', 'AN', 'AI', 'DD', 'OP', 'ALL', 'YOU', 'TV', 'PM', 'HAS',
-        'ARM', 'ARE', 'PUMP', 'EOD', 'DAY', 'WTF', 'HIT', 'NOW'
+def run_reddit_crawler():
+    """
+    Deine Haupt-Crawler-Logik für Reddit.
+    Muss ein Dict zurückgeben:
+      { symbol: { 'trend': str,
+                  'timestamp': str,
+                  'mentions_count': int,
+                  'price_history': List[float],
+                  'current_price': float }
+      }
+    """
+    # Beispiel-Implementierung (platzhalter)
+    # Hier ersetzt du das mit deinem echten Crawling-Code:
+    now = time.strftime("%Y-%m-%d %H:%M:%S")
+    return {
+        'AAPL': {
+            'trend': 'up',
+            'timestamp': now,
+            'mentions_count': 123,
+            'price_history': [150.0, 151.2, 152.5],
+            'current_price': 153.0
+        },
+        'TSLA': {
+            'trend': 'down',
+            'timestamp': now,
+            'mentions_count': 98,
+            'price_history': [700.0, 695.5, 690.0],
+            'current_price': 688.0
+        }
     }
-    symbols = [s for s in all_symbols if s not in blacklist]
 
-    symbol_counts = Counter()
-    subreddit = reddit.subreddit("wallstreetbets")
-    cutoff_time = datetime.now() - timedelta(days=1)
+def main():
+    cfg = get_config()
+    # 1) Crawler ausführen
+    top_results = run_reddit_crawler()
 
-    post_count = 0
-    for post in subreddit.new(limit=100):
-        if datetime.fromtimestamp(post.created_utc) < cutoff_time:
-            continue
-        post_count += 1
-        search_text = f"{post.title} {post.selftext}"
-        post.comments.replace_more(limit=30)
-        for comment in post.comments.list():
-            search_text += f" {comment.body}"
-        for symbol in symbols:
-            pattern = pattern_template.format(symbol=re.escape(symbol))
-            matches = len(re.findall(pattern, search_text))
-            if matches > 0:
-                symbol_counts[symbol] += matches
-                print(f"→ {symbol}: {matches} mentions")
+    # 2) Pickle ablegen
+    output_path = cfg.get('pickle_output_path')
+    os.makedirs(output_path, exist_ok=True)
+    filename = f"results_{int(time.time())}.pkl"
+    pickle_file = os.path.join(output_path, filename)
+    with open(pickle_file, 'wb') as f:
+        pickle.dump(top_results, f)
+    print(f"🔢 {len(top_results)} records pickled to {pickle_file}")
 
-    filtered = {s: c for s, c in symbol_counts.items() if c > 5}
-    if filtered:
-        data = {'run_id': run_id, 'results': filtered, 'total_posts': post_count}
-        os.makedirs('data/pickle', exist_ok=True)
-        file_path = f'data/pickle/{run_id}_crawler-results.pkl'
-        with open(file_path, 'wb') as f:
-            pickle.dump(data, f)
-        print(f"\n✅ Results saved in: {file_path}")
+    # 3) Webhook-Benachrichtigung
+    for symbol, data in top_results.items():
+        try:
+            notify_webhook(symbol, data)
+            print(f"✅ Webhook sent for {symbol}")
+        except Exception as e:
+            print(f"🚫 Error sending webhook for {symbol}: {e}")
 
-        # ✅ Send webhook notification
-        send_top_stocks_webhook(filtered, run_id)
-    else:
-        print("\n🚫 No symbols above threshold found.")
-
-if __name__ == "__main__":
-    reddit_crawler()
+if __name__ == '__main__':
+    main()
