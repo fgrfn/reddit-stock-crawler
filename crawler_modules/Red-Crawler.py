@@ -29,14 +29,19 @@ def run_reddit_crawler():
     mention_counter = {}
     subreddits = ["wallstreetbets", "stocks", "investing"]
     posts_per_subreddit = 100
+    logs = []
 
+    print("\n🔍 Scanning Reddit posts...")
     for sub in subreddits:
+        print(f"🔸 Checking /r/{sub}...")
         for submission in reddit.subreddit(sub).new(limit=posts_per_subreddit):
             title = submission.title.upper()
             for symbol in symbols:
                 if f"${symbol}" in title or f" {symbol} " in title:
                     mention_counter[symbol] = mention_counter.get(symbol, 0) + 1
-                    print(f"→ {symbol}: {mention_counter[symbol]} Treffer")
+                    log = f"→ {symbol}: {mention_counter[symbol]} Treffer"
+                    print(log)
+                    logs.append(log)
 
     # Take top 5 mentioned symbols
     top_symbols = sorted(mention_counter.items(), key=lambda x: x[1], reverse=True)[:5]
@@ -53,6 +58,11 @@ def run_reddit_crawler():
             "price_history": [],
             "current_price": 0.0
         }
+
+    # Optional: write CSV export for reference
+    pd.DataFrame([
+        {"Symbol": s, "Mentions": c} for s, c in sorted(mention_counter.items(), key=lambda x: x[1], reverse=True)
+    ]).to_csv("data/logs/full_mention_log.csv", index=False)
 
     return result
 
