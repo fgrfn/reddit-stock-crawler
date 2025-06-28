@@ -12,40 +12,38 @@ from crawler_modules.webhook_notifier import notify_webhook
 def run_reddit_crawler():
     cfg = get_config()
 
-    # Init Reddit client
+    # Initialize Reddit client
     reddit = praw.Reddit(
         client_id=cfg.reddit_client_id,
         client_secret=cfg.reddit_client_secret,
         user_agent=cfg.reddit_user_agent
     )
 
-    # Load symbol list from Excel
+    # Load symbol list
     excel_path = "data/NAS-NYSE-cleaned.xlsx"
-
     try:
         symbols_df = pd.read_excel(excel_path)
-        print(f"📥 Loaded Excel file: {excel_path}")
-        print(f"🧪 Columns found: {symbols_df.columns.tolist()}")
+        print(f"📥 Loaded Excel: {excel_path}")
+        print(f"📊 Columns: {symbols_df.columns.tolist()}")
 
-        # Try different column name variants
         possible_columns = ["ACT Symbol", "Symbol", "Ticker"]
         symbol_column = next((col for col in possible_columns if col in symbols_df.columns), None)
 
         if not symbol_column:
-            print("❌ No valid symbol column found in Excel file.")
+            print("❌ No valid column in Excel.")
             sys.exit(1)
 
         symbols = set(symbols_df[symbol_column].dropna().astype(str).str.upper())
-        print(f"✅ {len(symbols)} symbols loaded from column: {symbol_column}")
+        print(f"✅ Loaded {len(symbols)} symbols from '{symbol_column}'")
 
     except Exception as e:
-        print(f"❌ Error reading Excel file '{excel_path}': {e}")
+        print(f"❌ Failed to read Excel '{excel_path}': {e}")
         sys.exit(1)
 
-    # Apply blacklist from original Heise article
+    # Apply blacklist (as in heise article)
     blacklist = {
-        "FOR", "ON", "ARE", "YOU", "ALL", "GO", "IT", "AS", "OR",
-        "BY", "TO", "IN", "OUT", "GET", "HAS", "WAS", "HAD", "JUNE", "MAY", "AI"
+        "FOR", "ON", "ARE", "YOU", "ALL", "GO", "IT", "AS", "BE", "BY", "HAS", "ITS", "NEW", "NOT",
+        "OR", "SO", "THE", "TO", "UP", "USE", "CEO", "BUY", "SELL", "OPEN", "AI", "JUNE"
     }
     symbols -= blacklist
 
@@ -62,18 +60,18 @@ def run_reddit_crawler():
             for symbol in symbols:
                 if f"${symbol}" in title or f" {symbol} " in title:
                     mention_counter[symbol] = mention_counter.get(symbol, 0) + 1
-                    log = f"→ {symbol}: {mention_counter[symbol]} Treffer"
+                    log = f"→ {symbol}: {mention_counter[symbol]} hits"
                     print(log)
                     logs.append(log)
 
-    # Take top 5 mentioned symbols
+    # Top 5
     top_symbols = sorted(mention_counter.items(), key=lambda x: x[1], reverse=True)[:5]
     result = {}
     now = time.strftime("%Y-%m-%d %H:%M:%S")
 
-    print("\n📊 Top 5 meistgenannte Symbole:")
+    print("\n📈 Top 5 mentioned symbols:")
     for symbol, count in top_symbols:
-        print(f"→ {symbol}: {count} Treffer")
+        print(f"→ {symbol}: {count} hits")
         result[symbol] = {
             "trend": "neutral",
             "timestamp": now,
@@ -82,7 +80,8 @@ def run_reddit_crawler():
             "current_price": 0.0
         }
 
-    # Optional: write CSV export for reference
+    # Export full mention log
+    os.makedirs("data/logs", exist_ok=True)
     pd.DataFrame([
         {"Symbol": s, "Mentions": c} for s, c in sorted(mention_counter.items(), key=lambda x: x[1], reverse=True)
     ]).to_csv("data/logs/full_mention_log.csv", index=False)
@@ -95,16 +94,16 @@ def main():
     # Run crawler
     top_results = run_reddit_crawler()
 
-    # Save results to pickle
-    output_path = cfg.get('pickle_output_path')
+    # Save results
+    output_path = cfg.get("pickle_output_path")
     os.makedirs(output_path, exist_ok=True)
     filename = f"results_{int(time.time())}.pkl"
     pickle_file = os.path.join(output_path, filename)
-    with open(pickle_file, 'wb') as f:
+    with open(pickle_file, "wb") as f:
         pickle.dump(top_results, f)
     print(f"🔢 {len(top_results)} records pickled to {pickle_file}")
 
-    # Send Discord webhooks
+    # Send webhooks
     for symbol, data in top_results.items():
         try:
             notify_webhook(symbol, data)
@@ -112,5 +111,5 @@ def main():
         except Exception as e:
             print(f"🚫 Error sending webhook for {symbol}: {e}")
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
