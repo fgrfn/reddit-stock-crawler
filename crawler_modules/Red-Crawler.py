@@ -5,6 +5,7 @@ import time
 import pickle
 import praw
 import pandas as pd
+import sys
 from crawler_modules.config import get_config
 from crawler_modules.webhook_notifier import notify_webhook
 
@@ -18,9 +19,28 @@ def run_reddit_crawler():
         user_agent=cfg.reddit_user_agent
     )
 
-    # Load symbol list (NASDAQ/NYSE)
-    symbols_df = pd.read_excel("data/NAS-NYSE-cleaned.xlsx")
-    symbols = set(symbols_df["ACT Symbol"].dropna().str.upper())
+    # Load symbol list from Excel
+    excel_path = "data/NAS-NYSE-cleaned.xlsx"
+
+    try:
+        symbols_df = pd.read_excel(excel_path)
+        print(f"📥 Loaded Excel file: {excel_path}")
+        print(f"🧪 Columns found: {symbols_df.columns.tolist()}")
+
+        # Try different column name variants
+        possible_columns = ["ACT Symbol", "Symbol", "Ticker"]
+        symbol_column = next((col for col in possible_columns if col in symbols_df.columns), None)
+
+        if not symbol_column:
+            print("❌ No valid symbol column found in Excel file.")
+            sys.exit(1)
+
+        symbols = set(symbols_df[symbol_column].dropna().astype(str).str.upper())
+        print(f"✅ {len(symbols)} symbols loaded from column: {symbol_column}")
+
+    except Exception as e:
+        print(f"❌ Error reading Excel file '{excel_path}': {e}")
+        sys.exit(1)
 
     # Apply blacklist to avoid false positives from common words
     blacklist = {"FOR", "ON", "ARE", "YOU", "ALL", "GO"}
