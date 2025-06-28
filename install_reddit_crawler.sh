@@ -35,7 +35,7 @@ source "$INSTALL_DIR/venv/bin/activate"
 # 🛠️ Install Python dependencies inside venv
 echo "📦 Installing Python dependencies in virtual environment..."
 pip install --upgrade pip
-pip install pandas openpyxl praw python-dotenv streamlit plotly gspread google-auth google-auth-oauthlib seaborn openai
+pip install pandas openpyxl praw python-dotenv streamlit plotly gspread google-auth google-auth-oauthlib seaborn openai PyYAML
 
 # 🔑 Ask for Reddit & API credentials
 echo ""
