@@ -1,18 +1,34 @@
-# Reddit Stock Crawler (r/wallstreetbets)
+# 🧠 Reddit Stock Crawler
 
-This project automatically analyzes the most mentioned stock tickers in the `r/wallstreetbets` subreddit.
-
-It helps identify trending or hyped stocks quickly by crawling Reddit, counting ticker mentions, and exporting the results into an Excel file.
+A Python-based tool to scan Reddit posts for NASDAQ/NYSE stock tickers, track mention trends, and send alerts via Discord – now with AI-powered predictions using OpenAI or Gemini.
 
 ---
 
 ## 🚀 Features
 
-- Crawls latest posts and comments from `r/wallstreetbets`
-- Counts ticker symbol mentions based on a filtered NASDAQ/NYSE list
-- Excludes common words via blacklist
-- Saves results as `.pkl` and `.xlsx`
-- Optional: Streamlit dashboard for interactive viewing
+✅ Scans Reddit posts for ticker symbols from a verified stock list  
+✅ Supports `r/wallstreetbets`, `r/stocks`, and `r/investing`  
+✅ Filters out common false positives via a **blacklist**  
+✅ Counts Reddit mentions and identifies top trending stocks  
+✅ Stores the complete mention log as a CSV (`full_mention_log.csv`)  
+✅ Saves pickled result files for archival and analysis  
+✅ Sends alerts via **Discord Webhooks**  
+✅ Adds AI prediction using **OpenAI** or **Gemini**  
+✅ Cronjob and systemd support for automation  
+✅ Optional **Streamlit dashboard** for data visualization  
+
+---
+
+## ⚙️ Installation
+
+```bash
+git clone https://github.com/your-username/reddit-stock-crawler.git
+cd reddit-stock-crawler
+chmod +x install_reddit_crawler.sh
+./install_reddit_crawler.sh
+```
+
+During installation, you’ll be prompted to provide API keys, a Discord webhook, and define your scheduling preferences.
 
 ---
 
@@ -20,79 +36,92 @@ It helps identify trending or hyped stocks quickly by crawling Reddit, counting 
 
 ```
 reddit-stock-crawler/
-├── crawler/                  # Core logic scripts
-│   ├── Red-Crawler.py        # Reddit scraping logic
-│   ├── Red-Crawl-Table.py    # XLSX export logic
-│   └── ticker_pickle_generator.py  # Generates symbols_list.pkl
-│
-├── data/                     # Input/output files
-│   ├── NAS-NYSE-cleaned.xlsx      # Ticker source file
-│   ├── crawler_results_template.xlsx  # XLSX template
-│   ├── symbols_list.pkl           # Pickled ticker list
-│   ├── pickle/                    # Crawler results (Pickle)
-│   └── logs/                      # Optional logs
-│
-├── dashboard/                # Optional Streamlit dashboard
-│   └── dashboard.py
-│
-├── venv/                     # Python virtual environment
-├── install.sh                # Installer script
-├── run_reddit_crawler.sh     # Main runner
-├── secret.env                # Reddit API credentials
-└── README.md
+├── install_reddit_crawler.sh         # Installer with cron & systemd support
+├── run_reddit_crawler.sh            # Manual runner
+├── config.yaml                      # All credentials & settings
+├── data/
+│   ├── NAS-NYSE-cleaned.xlsx        # Ticker list
+│   ├── logs/full_mention_log.csv    # CSV with all symbol mentions
+│   └── pickle/                      # Pickled top results (e.g. 5 records)
+├── crawler_modules/
+│   ├── Red-Crawler.py               # Main Reddit crawler
+│   ├── webhook_notifier.py          # Discord + AI notification logic
+│   ├── config.py                    # Configuration loader
+│   ├── cleanup_pickle_files.py      # Auto-delete old pickle files
+│   └── upload_to_gsheets.py         # Optional Google Sheets export
+└── dashboard/
+    └── dashboard.py                 # Streamlit visualization (optional)
 ```
 
 ---
 
-## 🛠️ Installation
+## 🔄 Automation
 
-```bash
-git clone https://github.com/fgrfn/reddit-stock-crawler.git
-cd reddit-stock-crawler
-chmod +x install.sh
-./install.sh
-```
-
-The installer will:
-- Install required dependencies
-- Ask for Reddit API credentials
-- Download the stock list Excel file
-- Generate the ticker list
-- Setup a virtual environment
+- 🕒 **Cronjob** support: schedule regular crawler execution (hourly, daily, etc.)
+- 🖥️ **Systemd** unit: optional service to auto-launch the Streamlit dashboard on boot
 
 ---
 
-## 🧪 Run the crawler
+## 📦 Output
 
-```bash
-./run_reddit_crawler.sh
+- `data/logs/full_mention_log.csv`: all ticker mentions for full transparency  
+- `data/pickle/results_*.pkl`: top 5 symbols of each run  
+- Discord message example:
+
 ```
-
-Output will be saved to:
-
-- `data/pickle/*.pkl` (raw results)
-- `data/crawler_results_current.xlsx` (latest summary)
-
----
-
-## 📊 Optional: Streamlit Dashboard
-
-To launch the dashboard:
-
-```bash
-pip install streamlit
-streamlit run dashboard/dashboard.py
+📈 Reddit Stock Alert
+Symbol: AAPL
+Mentions: 123
+Trend: up
+Current Price: $153.00
+Prediction: ↑
+The short-term trend for AAPL seems to be rising due to a growing number of mentions and an upward price trend.
+Generated: 2025-06-28 03:10:12
 ```
 
 ---
 
-## 🔐 Reddit API Setup
+## 🔐 API Access
 
-Create a Reddit app at: https://www.reddit.com/prefs/apps  
-Use the credentials in the `install.sh` prompt or set them manually in `secret.env`.
+Required:
+- Reddit API credentials (client ID, secret, user agent)
+- OpenAI or Gemini API key
+- Discord Webhook URL  
+Optional:
+- Google Sheets credentials (service account key)
 
 ---
 
-## 📄 License
+## 🤖 AI Prediction
 
-MIT License
+The AI model analyzes:
+- Reddit mention volume  
+- Price history  
+- Current stock price  
+Then returns a **↑ or ↓ trend symbol** with a short rationale.
+
+---
+
+## 🧹 Cleanup
+
+Old `.pkl` files are automatically deleted after `X` days (as defined in `config.yaml`).
+
+---
+
+## 🔮 Future Ideas
+
+- Trend heatmap over time  
+- Dashboard filters (by ticker, date, mention count)  
+- Notion / Google Sheets sync  
+- Discord bot with query support (`!trend TSLA`)
+
+---
+
+## 🧑‍💻 License
+
+MIT – free for personal and commercial use.
+
+---
+
+> 📘 Based on the Heise guide:  
+> “[Reddit-Crawler für Aktien in Python bauen – Schritt für Schritt](https://www.heise.de/ratgeber/Reddit-Crawler-fuer-Aktien-in-Python-bauen-Schritt-fuer-Schritt-9666547.html)”
