@@ -1,143 +1,167 @@
 # dashboard/dashboard.py
-import os
-import pickle
-import json
-from datetime import datetime
-import pandas as pd
+
 import streamlit as st
+import pandas as pd
+import os
+import json
+import pickle
+from datetime import datetime
 import seaborn as sns
 import matplotlib.pyplot as plt
 from crawler_modules.config import get_config
 from crawler_modules.upload_to_gsheets import display_gsheets_status
 import requests
 
-# Initial setup
-st.set_page_config(page_title="Reddit Stock Mentions Dashboard", layout="wide")
-st.title("📊 Reddit Stock Mentions Dashboard (r/wallstreetbets)")
+st.set_page_config(page_title="📈 Reddit Stock Crawler", layout="wide")
+st.title("📈 Reddit Stock Mentions Dashboard (r/wallstreetbets)")
 
-# Load configuration
 cfg = get_config()
 
-# Load pickle data
-def load_pickle_data():
-    pickle_dir = cfg.pickle_output_path
-    files = [f for f in os.listdir(pickle_dir) if f.endswith(".pkl")]
-    if not files:
-        return pd.DataFrame(), []
+# Anzeige des nächsten geplanten Cron-Laufs
+st.subheader("⏱️ Nächste Ausführung")
+next_run_file = "data/next_run.txt"
+if os.path.exists(next_run_file):
+    with open(next_run_file) as f:
+        try:
+            next_run = datetime.fromisoformat(f.read().strip())
+            st.info(f"**{next_run.strftime('%Y-%m-%d %H:%M:%S')}**")
+        except Exception:
+            st.warning("⚠️ Ungültiger Zeitstempel in next_run.txt")
+else:
+    st.warning("ℹ️ Noch kein nächster Ausführungstermin vorhanden.")
 
-    data = []
-    for file in files:
-        with open(os.path.join(pickle_dir, file), "rb") as f:
-            data.append(pickle.load(f))
+# Lade das aktuelle Excel-Dokument (wenn vorhanden)
+excel_path = "data/crawler_results_current.xlsx"
+if os.path.exists(excel_path):
+    df = pd.read_excel(excel_path)
+    st.subheader("📊 Aktuelle Ergebnisse")
+    st.dataframe(df, use_container_width=True)
+else:
+    st.warning("❌ Keine aktuellen Ergebnisse gefunden.")
+    df = pd.DataFrame()
 
-    all_symbols = set()
-    for entry in data:
-        all_symbols.update(entry.get('results', {}).keys())
+# Lade JSON-Daten aller bisherigen Pickles
+pickles_dir = cfg.pickle_output_path
+all_data = []
+if os.path.exists(pickles_dir):
+    for file in sorted(os.listdir(pickles_dir), reverse=True):
+        if file.endswith(".pkl"):
+            try:
+                with open(os.path.join(pickles_dir, file), "rb") as f:
+                    data = pickle.load(f)
+                    all_data.append((file, data))
+            except Exception as e:
+                st.error(f"Fehler beim Laden von {file}: {e}")
 
+# ---- Pickle-Daten in DataFrame umwandeln ----
+def parse_pickles(data_list):
     rows = []
-    for entry in data:
-        row = {symbol: 0 for symbol in all_symbols}
-        row.update(entry.get('results', {}))
-        row['run_id'] = entry.get('run_id')
+    all_symbols = set()
+    for file, entry in data_list:
+        results = entry.get("results", {})
+        run_id = entry.get("run_id", file.replace("results_", "").replace(".pkl", ""))
+        all_symbols.update(results.keys())
+        row = {"run_id": run_id}
+        row.update(results)
         rows.append(row)
-
     df = pd.DataFrame(rows)
     df = df.sort_values("run_id").reset_index(drop=True)
     return df, sorted(all_symbols)
 
-# Load data
-df, symbols = load_pickle_data()
-if df.empty:
-    st.warning("🚫 No crawler results found.")
-    st.stop()
+# Verarbeitung & Anzeige
+if all_data:
+    st.subheader("📈 Analyse der letzten Crawls")
 
-# Sidebar filters
-with st.sidebar:
-    st.header("🔍 Filter Options")
-    selected_symbols = st.multiselect("Filter by symbol:", options=symbols, default=symbols[:5])
-    min_mentions = st.slider("Minimum Mentions:", min_value=1, max_value=int(df.drop(columns=["run_id"]).max().max()), value=3)
-    top_n = st.slider("Top N symbols in Heatmap:", min_value=3, max_value=len(symbols), value=10)
+    df_hist, symbols = parse_pickles(all_data)
 
-# Filter data
-filtered_df = df[['run_id'] + selected_symbols]
-filtered_df = filtered_df.loc[:, (filtered_df != 0).any(axis=0)]
-filtered_df = filtered_df[filtered_df[selected_symbols].ge(min_mentions).any(axis=1)]
+    # Seitenleiste für Filter
+    with st.sidebar:
+        st.header("🔍 Filter")
+        selected_symbols = st.multiselect("Filter by symbol:", options=symbols, default=symbols[:5])
+        try:
+            max_mentions = int(df_hist.drop(columns=["run_id"]).max().max())
+            if pd.isna(max_mentions) or max_mentions < 1:
+                raise ValueError
+        except Exception:
+            max_mentions = 10
+        min_mentions = st.slider("Minimum Mentions:", min_value=1, max_value=max_mentions, value=3)
+        top_n = st.slider("Top N Symbols (Heatmap):", min_value=3, max_value=len(symbols), value=10)
 
-# Display chart & table
-st.subheader("📈 Mentions Over Time")
-st.line_chart(filtered_df.set_index("run_id"))
+    # Gefilterter Datensatz
+    filtered_df = df_hist[['run_id'] + selected_symbols].copy()
+    filtered_df = filtered_df.loc[:, (filtered_df != 0).any(axis=0)]
+    filtered_df = filtered_df[filtered_df[selected_symbols].ge(min_mentions).any(axis=1)]
 
-st.subheader("📋 Table View")
-st.dataframe(filtered_df)
+    st.line_chart(filtered_df.set_index("run_id"))
 
-# Heatmap of top mentioned symbols
-total_mentions = df.drop(columns=["run_id"]).sum().sort_values(ascending=False)
-top_symbols = total_mentions.head(top_n).index.tolist()
-heatmap_data = df[['run_id'] + top_symbols].set_index("run_id")
+    st.subheader("📋 Gefilterte Tabelle")
+    st.dataframe(filtered_df)
 
-st.subheader("🔥 Heatmap of Top Stock Mentions")
-fig, ax = plt.subplots(figsize=(10, 6))
-sns.heatmap(heatmap_data.T, annot=True, fmt="d", cbar=True, ax=ax)
-plt.xlabel("Run ID")
-plt.ylabel("Symbol")
-plt.title("Mentions per Symbol over Time")
-st.pyplot(fig)
+    # Heatmap
+    st.subheader("🔥 Heatmap of Top Stock Mentions")
+    total_mentions = df_hist.drop(columns=["run_id"]).sum().sort_values(ascending=False)
+    top_symbols = total_mentions.head(top_n).index.tolist()
+    heatmap_data = df_hist[['run_id'] + top_symbols].set_index("run_id")
 
-# Trend Analysis (local, not AI-based)
-st.subheader("📈 Mention Trends (Last 3 Runs)")
-trend_df = df[['run_id'] + top_symbols].copy()
-trend_result = []
-for symbol in top_symbols:
-    values = trend_df[symbol].values[-3:]
-    if len(values) < 3:
-        trend = "🟡 Not enough data"
-    elif values[-1] > values[-2] > values[-3]:
-        trend = "🟢 Increasing"
-    elif values[-1] < values[-2] < values[-3]:
-        trend = "🔴 Decreasing"
+    fig, ax = plt.subplots(figsize=(10, 6))
+    sns.heatmap(heatmap_data.T, annot=True, fmt="d", cbar=True, ax=ax)
+    st.pyplot(fig)
+
+    # Trends
+    st.subheader("📈 Mention Trends (Last 3 Runs)")
+    trend_df = df_hist[['run_id'] + top_symbols].copy()
+    trend_result = []
+    for symbol in top_symbols:
+        values = trend_df[symbol].values[-3:]
+        if len(values) < 3:
+            trend = "🟡 Not enough data"
+        elif values[-1] > values[-2] > values[-3]:
+            trend = "🟢 Increasing"
+        elif values[-1] < values[-2] < values[-3]:
+            trend = "🔴 Decreasing"
+        else:
+            trend = "🟡 Stable"
+        trend_result.append((symbol, values.tolist(), trend))
+
+    trend_table = pd.DataFrame(trend_result, columns=["Symbol", "Last 3", "Trend"])
+    st.dataframe(trend_table)
+
+    # AI-Auswertung
+    st.subheader("🤖 AI Recommendation")
+    ai_provider = cfg.ai_provider.lower()
+    prompt = "Given the following stock trends:\n" + "\n".join(
+        [f"{row['Symbol']}: {row['Trend']} ({row['Last 3']})" for _, row in trend_table.iterrows()]
+    ) + "\n\nWhich tickers show strong momentum and should be watched closely?"
+
+    if ai_provider == "openai":
+        from openai import OpenAI
+        client = OpenAI(api_key=cfg.openai_api_key)
+        resp = client.chat.completions.create(
+            model="gpt-4",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.3,
+            max_tokens=150
+        )
+        ai_text = resp.choices[0].message.content
+
+    elif ai_provider == "gemini":
+        url = (
+            "https://generativelanguage.googleapis.com/v1beta/"
+            "models/gemini-pro:generateContent"
+            f"?key={cfg.gemini_api_key}"
+        )
+        body = {"prompt": prompt, "temperature": 0.3, "maxOutputTokens": 150}
+        r = requests.post(url, json=body, timeout=10)
+        r.raise_for_status()
+        ai_text = r.json()["candidates"][0]["content"]
+
     else:
-        trend = "🟡 Stable"
-    trend_result.append((symbol, values.tolist(), trend))
+        ai_text = "⚠️ Unknown AI provider configured."
 
-trend_table = pd.DataFrame(trend_result, columns=["Symbol", "Last 3", "Trend"])
-st.dataframe(trend_table)
+    st.text_area("AI Einschätzung", ai_text, height=200)
 
-# Show Google Sheets status
+# Google Sheets Status
 with st.expander("📤 Google Sheets Export Status", expanded=True):
     display_gsheets_status()
 
-# AI Recommendation
-st.subheader("🤖 AI Recommendation")
-ai_provider = cfg.ai_provider.lower()
-
-# Build prompt for AI
-prompt = "Given the following stock trends:\n" + "\n".join(
-    [f"{row['Symbol']}: {row['Trend']} ({row['Last 3']})" for _, row in trend_table.iterrows()]
-) + "\n\nWhich tickers show strong momentum and should be watched closely?"
-
-if ai_provider == "openai":
-    from openai import OpenAI
-    client = OpenAI(api_key=cfg.openai_api_key)
-    resp = client.chat.completions.create(
-        model="gpt-4",
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.3,
-        max_tokens=150
-    )
-    ai_text = resp.choices[0].message.content
-
-elif ai_provider == "gemini":
-    url = (
-        "https://generativelanguage.googleapis.com/v1beta/"
-        "models/gemini-pro:generateContent"
-        f"?key={cfg.gemini_api_key}"
-    )
-    body = {"prompt": prompt, "temperature": 0.3, "maxOutputTokens": 150}
-    r = requests.post(url, json=body, timeout=10)
-    r.raise_for_status()
-    ai_text = r.json()["candidates"][0]["content"]
-
-else:
-    ai_text = "⚠️ Unbekannter AI Provider konfiguriert."
-
-st.text_area("AI Einschätzung", ai_text, height=200)
+st.caption("🔁 Das Dashboard aktualisiert sich nach jedem Crawl automatisch.")
