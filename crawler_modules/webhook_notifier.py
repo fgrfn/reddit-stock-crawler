@@ -7,37 +7,27 @@ from crawler_modules.config import get_config
 cfg = get_config()
 AI_PROVIDER = cfg.ai_provider.lower()
 
-# OpenAI-Client konfigurieren
+# Configure OpenAI client
 if AI_PROVIDER == "openai":
     from openai import OpenAI
     client = OpenAI(api_key=cfg.openai_api_key)
 
-
-def build_prompt(symbol: str,
-                 mentions_count: int,
-                 price_history: list[float],
-                 current_price: float) -> str:
+def build_prompt(symbol: str, mentions_count: int, price_history: list[float], current_price: float) -> str:
     hist_str = ", ".join(f"{p:.2f}" for p in price_history)
     return (
-        f"Du bist ein KI-Trader-Assistant.\n"
+        f"You are a trading assistant AI.\n"
         f"Symbol: {symbol}\n"
-        f"Anzahl Social-Mentions: {mentions_count}\n"
-        f"Kursverlauf der letzten Tage: {hist_str}\n"
-        f"Aktueller Kurs: {current_price:.2f}\n\n"
-        "Gib in zwei Sätzen eine Einschätzung, "
-        "ob der Kurs kurzfristig steigen (↑) oder fallen (↓) wird. "
-        "Antworte mit '↑' oder '↓' gefolgt von einer kurzen Erklärung."
+        f"Mentions: {mentions_count}\n"
+        f"Price history: {hist_str}\n"
+        f"Current price: {current_price:.2f}\n\n"
+        "Predict the short-term trend: will it rise (↑) or fall (↓)? "
+        "Reply with '↑' or '↓' and a short reason."
     )
 
-
-def predict_trend(symbol: str,
-                  mentions_count: int,
-                  price_history: list[float],
-                  current_price: float) -> str:
+def predict_trend(symbol: str, mentions_count: int, price_history: list[float], current_price: float) -> str:
     prompt = build_prompt(symbol, mentions_count, price_history, current_price)
 
     if AI_PROVIDER == "openai":
-        # Neues OpenAI-Python-Interface
         resp = client.chat.completions.create(
             model="gpt-4",
             messages=[{"role": "user", "content": prompt}],
@@ -62,32 +52,29 @@ def predict_trend(symbol: str,
         return r.json()["candidates"][0]["content"].strip()
 
     else:
-        raise RuntimeError(f"Unbekannter AI Provider: {cfg.ai_provider}")
-
+        raise RuntimeError(f"Unknown AI Provider: {cfg.ai_provider}")
 
 def notify_webhook(symbol: str, data: dict):
-    """
-    Sendet Basis-Payload plus KI-Prognose an den konfigurierten Webhook.
-    """
-    run_timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    payload = {
-        "symbol": symbol,
-        "trend": data["trend"],
-        "timestamp": data["timestamp"],
-        "run_timestamp": run_timestamp,
-    }
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    trend = data["trend"]
+    mentions = data["mentions_count"]
+    price_hist = data["price_history"]
+    current_price = data["current_price"]
 
-    # KI-Prognose hinzufügen
     try:
-        payload["prediction"] = predict_trend(
-            symbol,
-            mentions_count=data["mentions_count"],
-            price_history=data["price_history"],
-            current_price=data["current_price"]
-        )
+        prediction = predict_trend(symbol, mentions, price_hist, current_price)
     except Exception as e:
-        payload["prediction_error"] = str(e)
+        prediction = f"Prediction error: {str(e)}"
 
-    # Abschicken
-    resp = requests.post(cfg.webhook_url, json=payload, timeout=5)
-    resp.raise_for_status()
+    content = (
+        f"**📈 Reddit Stock Alert**\n"
+        f"**Symbol:** `{symbol}`\n"
+        f"**Mentions:** `{mentions}`\n"
+        f"**Trend:** `{trend}`\n"
+        f"**Current Price:** `${current_price:.2f}`\n"
+        f"**Prediction:** `{prediction}`\n"
+        f"_Generated: {timestamp}_"
+    )
+
+    response = requests.post(cfg.webhook_url, json={"content": content}, timeout=10)
+    response.raise_for_status()
