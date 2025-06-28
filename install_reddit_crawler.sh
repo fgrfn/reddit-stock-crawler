@@ -93,6 +93,7 @@ python3 crawler_modules/Red-Crawler.py
 python3 crawler_modules/Red-Crawl-Table.py
 python3 crawler_modules/cleanup_pickle_files.py
 python3 crawler_modules/upload_to_gsheets.py
+streamlit run dashboard/dashboard.py
 EOF
 
 chmod +x "$INSTALL_DIR/run_reddit_crawler.sh"
