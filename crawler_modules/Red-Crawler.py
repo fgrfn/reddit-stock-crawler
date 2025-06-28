@@ -20,7 +20,7 @@ def run_reddit_crawler():
 
     # Load symbol list (NASDAQ/NYSE)
     symbols_df = pd.read_excel("data/NAS-NYSE-cleaned.xlsx")
-    symbols = set(symbols_df["Symbol"].dropna().str.upper())
+    symbols = set(symbols_df["ACT Symbol"].dropna().str.upper())
 
     mention_counter = {}
     subreddits = ["wallstreetbets", "stocks", "investing"]
