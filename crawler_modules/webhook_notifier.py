@@ -1,17 +1,17 @@
+# crawler_modules/webhook_notifier.py
 import os
 import requests
 from datetime import datetime
 from crawler_modules.config import get_config
 
 cfg = get_config()
-
-# Erstelle einmalig den Provider-Namen
 AI_PROVIDER = cfg.ai_provider.lower()
 
 # OpenAI-Client konfigurieren
 if AI_PROVIDER == "openai":
-    import openai
-    openai.api_key = cfg.openai_api_key
+    from openai import OpenAI
+    client = OpenAI(api_key=cfg.openai_api_key)
+
 
 def build_prompt(symbol: str,
                  mentions_count: int,
@@ -29,6 +29,7 @@ def build_prompt(symbol: str,
         "Antworte mit '↑' oder '↓' gefolgt von einer kurzen Erklärung."
     )
 
+
 def predict_trend(symbol: str,
                   mentions_count: int,
                   price_history: list[float],
@@ -36,7 +37,8 @@ def predict_trend(symbol: str,
     prompt = build_prompt(symbol, mentions_count, price_history, current_price)
 
     if AI_PROVIDER == "openai":
-        resp = openai.ChatCompletion.create(
+        # Neues OpenAI-Python-Interface
+        resp = client.chat.completions.create(
             model="gpt-4",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.3,
@@ -57,17 +59,16 @@ def predict_trend(symbol: str,
         }
         r = requests.post(url, json=body, timeout=10)
         r.raise_for_status()
-        # Je nach Gemini-Response-Format musst du hier ggf. anpassen:
         return r.json()["candidates"][0]["content"].strip()
 
     else:
         raise RuntimeError(f"Unbekannter AI Provider: {cfg.ai_provider}")
 
+
 def notify_webhook(symbol: str, data: dict):
     """
-    Sendet das Basis-Payload plus KI-Prognose an den konfigurierten Webhook.
+    Sendet Basis-Payload plus KI-Prognose an den konfigurierten Webhook.
     """
-    # 1) Basis-Payload
     run_timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     payload = {
         "symbol": symbol,
@@ -76,7 +77,7 @@ def notify_webhook(symbol: str, data: dict):
         "run_timestamp": run_timestamp,
     }
 
-    # 2) KI-Prognose holen
+    # KI-Prognose hinzufügen
     try:
         payload["prediction"] = predict_trend(
             symbol,
@@ -85,9 +86,8 @@ def notify_webhook(symbol: str, data: dict):
             current_price=data["current_price"]
         )
     except Exception as e:
-        # Fallback: ohne Prognose senden
         payload["prediction_error"] = str(e)
 
-    # 3) Abschicken
+    # Abschicken
     resp = requests.post(cfg.webhook_url, json=payload, timeout=5)
     resp.raise_for_status()
